@@ -5,3 +5,4 @@ environment:
 
 dependencies:
   args:
+  characters: ^1.3.0

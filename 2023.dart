@@ -4,6 +4,8 @@ import 'package:args/args.dart';
 
 import '1.dart';
 import '2.dart';
+import '3.dart';
+import '4.dart';
 
 void main(List<String> arguments) {
   exitCode = 0;
@@ -20,5 +22,9 @@ void main(List<String> arguments) {
     case '2':
       subset ? day2s() : day2();
       break;
+    case '3':
+      subset ? day3s() : day3();
+    case '4':
+      day4(subset);
   }
 }

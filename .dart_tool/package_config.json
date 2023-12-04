@@ -8,13 +8,19 @@
       "languageVersion": "2.19"
     },
     {
+      "name": "characters",
+      "rootUri": "file:///Users/h/.pub-cache/hosted/pub.dev/characters-1.3.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
       "name": "aoc",
       "rootUri": "../",
       "packageUri": "lib/",
       "languageVersion": "3.1"
     }
   ],
-  "generated": "2023-12-02T09:48:24.540461Z",
+  "generated": "2023-12-03T09:43:57.353858Z",
   "generator": "pub",
   "generatorVersion": "3.1.4"
 }
