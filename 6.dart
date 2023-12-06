@@ -22,12 +22,15 @@ day6(bool subset) {
 }
 
 int ways(Race r) {
+  Stopwatch s = Stopwatch()..start();
   // direct calculation of ways
   int ws = 0;
   for (int i = 0; i <= r.t; i++) {
     ws += ((r.t - i) * i) > r.d ? 1 : 0;
   }
 
+  Duration brute = s.elapsed;
+  s.reset();
   // inequality based solution
   // the determinant of the quadratic is the size of the interval
   double det = sqrt((r.t * r.t) - 4 * r.d);
@@ -39,7 +42,11 @@ int ways(Race r) {
   int a = ((fudge - det) / 2).ceil();
   int b = ((-fudge + det) / 2).floor();
 
+  Duration maths = s.elapsed;
+
   // print both answers to see that they are correct
+  print(
+      "brute force took: ${brute.inMicroseconds}, maths took: ${maths.inMicroseconds}");
   print("$ws, ${b - a + 1}");
 
   return ws;
