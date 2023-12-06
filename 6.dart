@@ -22,15 +22,25 @@ day6(bool subset) {
 }
 
 int ways(Race r) {
-  double fudge = 0.00001;
+  // direct calculation of ways
   int ws = 0;
   for (int i = 0; i <= r.t; i++) {
     ws += ((r.t - i) * i) > r.d ? 1 : 0;
   }
+
+  // inequality based solution
+  // the determinant of the quadratic is the size of the interval
   double det = sqrt((r.t * r.t) - 4 * r.d);
+
+  // need a fudge factor to deal with integer endpoints
+  double fudge = 0.00001;
+
+  // <insert explanation here>
   int a = ((fudge - det) / 2).ceil();
   int b = ((-fudge + det) / 2).floor();
-  print("${r.t}, ${r.d}, $ws, $det, ${det.floor()}, ${b - a + 1}");
+
+  // print both answers to see that they are correct
+  print("$ws, ${b - a + 1}");
 
   return ws;
 }
