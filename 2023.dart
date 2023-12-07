@@ -8,6 +8,7 @@ import '3.dart';
 import '4.dart';
 import '5.dart';
 import '6.dart';
+import '7.dart';
 
 void main(List<String> arguments) {
   exitCode = 0;
@@ -21,16 +22,24 @@ void main(List<String> arguments) {
   switch (argResults["day"]) {
     case '1':
       subset ? day1s() : day1();
+      break;
     case '2':
       subset ? day2s() : day2();
       break;
     case '3':
       subset ? day3s() : day3();
+      break;
     case '4':
       day4(subset);
+      break;
     case '5':
       day5(subset);
+      break;
     case '6':
       day6(subset);
+      break;
+    case '7':
+      day7(subset);
+      break;
   }
 }
