@@ -4,10 +4,10 @@ void d8(bool s) {
   List<String> lines = getLines();
   Map<String, ({String l, String r})> nodes = Map.fromIterable(
       List.generate(lines.length - 2, (index) {
-        int i = index + 2;
-        String d =
-            lines[i].replaceAll('=', ',').replaceAll(RegExp(r'[ ()]'), '');
-        return d.split(',');
+        return lines[index + 2]
+            .replaceAll('=', ',')
+            .replaceAll(RegExp(r'[ ()]'), '')
+            .split(',');
       }),
       key: (n) => n[0],
       value: (n) => (l: n[1], r: n[2]));
