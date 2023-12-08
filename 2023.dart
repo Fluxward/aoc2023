@@ -9,6 +9,7 @@ import '4.dart';
 import '5.dart';
 import '6.dart';
 import '7.dart';
+import '8.dart';
 
 void main(List<String> arguments) {
   exitCode = 0;
@@ -40,6 +41,9 @@ void main(List<String> arguments) {
       break;
     case '7':
       day7(subset);
+      break;
+    case '8':
+      d8(subset);
       break;
   }
 }
