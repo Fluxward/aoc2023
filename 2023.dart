@@ -10,6 +10,7 @@ import '5.dart';
 import '6.dart';
 import '7.dart';
 import '8.dart';
+import '9.dart';
 
 void main(List<String> arguments) {
   exitCode = 0;
@@ -44,6 +45,9 @@ void main(List<String> arguments) {
       break;
     case '8':
       d8(subset);
+      break;
+    case '9':
+      d9(subset);
       break;
   }
 }

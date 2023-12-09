@@ -21,8 +21,12 @@ int? stoi(String s) {
   return acc;
 }
 
-List<int> stois(String s, {String sep = ' '}) {
+List<int> stoisPositive(String s, {String sep = ' '}) {
   return List.from(s.split(sep).map((e) => stoi(e)).nonNulls);
+}
+
+List<int> stois(String s, {String sep = ' '}) {
+  return List.from(s.split(sep).map((e) => int.tryParse(e)).nonNulls);
 }
 
 List<String> getLines() => [

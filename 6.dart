@@ -12,8 +12,8 @@ class Race {
 day6(bool subset) {
   List<String> lines = getLines();
 
-  List<int> ts = stois(lines[0].split(": ")[1]);
-  List<int> ds = stois(lines[1].split(": ")[1]);
+  List<int> ts = stoisPositive(lines[0].split(": ")[1]);
+  List<int> ds = stoisPositive(lines[1].split(": ")[1]);
 
   List<Race> races =
       List.generate(ts.length, (index) => Race(ts[index], ds[index]));
