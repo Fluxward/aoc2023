@@ -2,7 +2,7 @@ import 'dart:math';
 
 import 'common.dart';
 
-void day5(bool subset) {
+void d5(bool subset) {
   List<String> lines = getLines();
   subset ? day5b(lines) : day5a(lines);
 }

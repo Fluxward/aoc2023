@@ -1,5 +1,7 @@
 import 'dart:io';
 
+void d2(bool s) => s ? day2s() : day2();
+
 void day2s() {
   int count = 0;
   for (String? line = stdin.readLineSync();

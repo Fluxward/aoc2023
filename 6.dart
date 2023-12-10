@@ -9,7 +9,7 @@ class Race {
   Race(this.t, this.d);
 }
 
-day6(bool subset) {
+d6(bool subset) {
   List<String> lines = getLines();
 
   List<int> ts = stoisPositive(lines[0].split(": ")[1]);

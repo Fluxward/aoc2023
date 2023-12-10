@@ -12,6 +12,7 @@ import '7.dart';
 import '8.dart';
 import '9.dart';
 
+List<Function(bool)> jump = [d1, d2, d3, d4, d5, d6, d7, d8, d9];
 void main(List<String> arguments) {
   exitCode = 0;
   final parser = ArgParser()
@@ -19,35 +20,10 @@ void main(List<String> arguments) {
     ..addFlag('subset', help: "subset", abbr: 's');
 
   ArgResults argResults = parser.parse(arguments);
-  bool subset = argResults['subset'];
+  bool s = argResults['subset'];
 
-  switch (argResults["day"]) {
-    case '1':
-      subset ? day1s() : day1();
-      break;
-    case '2':
-      subset ? day2s() : day2();
-      break;
-    case '3':
-      subset ? day3s() : day3();
-      break;
-    case '4':
-      day4(subset);
-      break;
-    case '5':
-      day5(subset);
-      break;
-    case '6':
-      day6(subset);
-      break;
-    case '7':
-      day7(subset);
-      break;
-    case '8':
-      d8(subset);
-      break;
-    case '9':
-      d9(subset);
-      break;
+  int? to = int.tryParse(argResults['day']);
+  if (to != null) {
+    jump[to - 1](s);
   }
 }

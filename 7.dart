@@ -133,7 +133,7 @@ class Hand implements Comparable {
   }
 }
 
-void day7(bool s) {
+void d7(bool s) {
   !s ? a7() : b7();
 }
 

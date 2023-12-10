@@ -1,5 +1,9 @@
 import 'dart:io';
 
+void d1(bool s) {
+  s ? day1s() : day1();
+}
+
 void day1s() {
   Map<String, int> digits =
       Map.fromEntries([for (int i = 0; i < 10; i++) MapEntry(i.toString(), i)]);

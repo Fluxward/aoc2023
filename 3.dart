@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'common.dart';
 
+void d3(bool s) => s ? day3s() : day3();
 void day3s() {
   List<String> lines = [
     for (String? line = stdin.readLineSync();

@@ -1,6 +1,6 @@
 import 'common.dart';
 
-void day4(bool sub) {
+void d4(bool sub) {
   List<String> lines = getLines();
   sub ? day4b(lines) : day4a(lines);
 }
