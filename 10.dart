@@ -4,17 +4,6 @@ import 'common.dart';
 
 d10(bool s) => s ? b10(getLines()) : a10(getLines());
 
-Point<int>? findS(List<String> m) {
-  for (int i = 0; i < m.length; i++) {
-    for (int j = 0; j < m[0].length; j++) {
-      if (m[i][j] == 'S') {
-        return Point(i, j);
-      }
-    }
-  }
-  return null;
-}
-
 enum dir {
   u(Point<int>(-1, 0)),
   d(Point<int>(1, 0)),
@@ -23,8 +12,28 @@ enum dir {
 
   final Point<int> p;
   const dir(this.p);
+
+  dir rev() {
+    switch (this) {
+      case u:
+        return d;
+      case d:
+        return u;
+      case l:
+        return r;
+      case r:
+        return l;
+    }
+  }
+
+  Point<int> operator +(other) => other + p;
 }
 
+extension DeltaAddition on Point<int> {
+  Point<int> operator +(dir d) => d + this;
+}
+
+// pipe type
 enum pT {
   // x is the row index, y is the column index.
   ud(dir.u, dir.d),
@@ -39,7 +48,7 @@ enum pT {
 
   const pT(this.a, this.b);
 
-  bool connected(Point<int> d) => a == d * -1 || b == d * -1;
+  bool connected(dir d) => a == d.rev() || b == d.rev();
 
   static pT? fromString(String s) {
     switch (s) {
@@ -60,30 +69,31 @@ enum pT {
   }
 }
 
-bool inBounds(int x, int y, List<String> m) =>
-    x >= 0 && y >= 0 && x < m.length && y < m[0].length;
+extension PointAccess on List<String> {
+  pT? pTat(Point<int> p) => inBounds(p)
+      ? this[p.x][p.y] == 'S'
+          ? getStartPipeType(p, this)
+          : pT.fromString(this[p.x][p.y])
+      : null;
 
-bool pInBounds(Point<int> p, List<String> m) => inBounds(p.x, p.y, m);
+  bool inBounds(Point<int> p) =>
+      p.x >= 0 && p.y >= 0 && p.x < this.length && p.y < this[0].length;
+}
 
+Point<int>? findS(List<String> m) {
+  int y = -1;
+  int x = m.indexWhere((line) => (y = max(line.indexOf('S'), y)) >= 0);
+
+  return x >= 0 && y >= 0 ? Point<int>(x, y) : null;
+}
+
+// determine pipe type of S
 pT getStartPipeType(Point<int> s, List<String> m) {
-  // determine pipe type of S
-  pT? u = pT.fromString(m[s.x - 1][s.y]);
-  pT? d = pT.fromString(m[s.x + 1][s.y]);
-  pT? l = pT.fromString(m[s.x][s.y - 1]);
+  bool isConnected(Point<int> p, dir d) => m.pTat(d + p)?.connected(d) ?? false;
 
-  bool bu = false;
-  bool bd = false;
-  bool bl = false;
-
-  if (u != null) {
-    bu = u.connected(Point<int>(-1, 0));
-  }
-  if (d != null) {
-    bd = d.connected(Point<int>(1, 0));
-  }
-  if (l != null) {
-    bl = l.connected(Point<int>(0, -1));
-  }
+  bool bu = isConnected(s, dir.u);
+  bool bd = isConnected(s, dir.d);
+  bool bl = isConnected(s, dir.l);
 
   return bu
       ? (bd ? pT.ud : (bl ? pT.ul : (pT.ur)))
@@ -97,55 +107,20 @@ List<Point<int>>? getPath(List<String> m) {
     return null;
   }
 
-  int length = 0;
-
   // dfs the path
   Point<int> cur = s;
-  Point<int>? next;
   dir? prevD = null;
-  List<Point<int>> path = [s];
+  List<Point<int>> path = [];
+
   while ((prevD == null || cur != s)) {
-    for (int i = 0; i < 4; i++) {
-      pT? curP = pT.fromString(m[cur.x][cur.y]);
-      dir d = dir.values[i];
-      // don't check backwards
-      if (prevD == d ||
-          // don't check an adjacent pipe if it isn't connected to this
-          (cur != s && curP != null && !curP.connected(dir.values[i].p * -1))) {
-        continue;
-      }
-
-      next = cur + ds[i];
-
-      if (next.x < 0 ||
-          next.y < 0 ||
-          next.x >= m.length ||
-          next.y >= m.length) {
-        continue;
-      }
-
-      if (next == s) {
-        length++;
-        print("$length, ${length ~/ 2}");
-        return path;
-      }
-
-      pT? np = pT.fromString(m[next.x][next.y]);
-      if (np == null) {
-        continue;
-      }
-
-      if (np.connected(ds[i])) {
-        cur = next;
-        prevD = ds[i] * -1;
-        length++;
-        path.add(cur);
-        break;
-      }
-    }
+    path.add(cur);
+    pT cpt = m.pTat(cur)!;
+    dir d = cpt.a == prevD ? cpt.b : cpt.a;
+    cur = d + cur;
+    prevD = d.rev();
   }
 
-  return null;
+  return path;
 }
 
 void a10(List<String> m) {
@@ -154,134 +129,39 @@ void a10(List<String> m) {
 
 void b10(List<String> m) {
   List<Point<int>>? p = getPath(m);
+
   if (p == null) {
     return;
   }
-
-  Map<Point<int>, pT> path = Map.fromIterable(p,
-      key: (p) => p, value: (p) => p == s ? spt : pT.fromString(m[p.x][p.y])!);
+  Map<Point<int>, pT> path =
+      Map.fromIterable(p, key: (p) => p, value: (p) => m.pTat(p)!);
 
   // track vertical crossings, horizontal crossings.
-  Map<int, Set<int>> inside = {};
 
   int count = 0;
   for (int i = 0; i < m.length; i++) {
     bool outside = true;
     pT? prevCorner = null;
     for (int j = 0; j < m[i].length; j++) {
+      // only care about pipes on the path.
       pT? c = path[Point<int>(i, j)];
-      if (c != null) {
-        switch (c) {
-          case pT.ud:
-            outside = !outside;
-            break;
-          case pT.ur:
-          case pT.dr:
-            prevCorner = c;
-          case pT.ul:
-            if (prevCorner == pT.dr) {
-              outside = !outside;
-            }
-            prevCorner = null;
-          case pT.dl:
-            if (prevCorner == pT.ur) {
-              outside = !outside;
-            }
-          case pT.lr:
-          // fall through
-        }
-        continue;
+      switch (c) {
+        case pT.ud:
+          outside = !outside;
+        case pT.ur:
+        case pT.dr:
+          // this will always happen before an l corner.
+          prevCorner = c;
+        case pT.ul:
+          outside = prevCorner == pT.dr ? !outside : outside;
+        case pT.dl:
+          outside = prevCorner == pT.ur ? !outside : outside;
+        default:
       }
-      if (!outside) {
+      if (c == null && !outside) {
         count += 1;
-        inside.putIfAbsent(i, () => {})..add(j);
       }
     }
   }
   print(count);
-}
-
-void printGrid(List<String> m, int x, int y) {
-  print("-" * m.length);
-  for (int i = 0; i < m.length; i++) {
-    if (i == x) {
-      String c = m[i];
-      print(c.replaceRange(y, y + 1, 'X'));
-    } else {
-      print(m[i]);
-    }
-  }
-  print("-" * m.length);
-}
-
-void printArea(
-    List<String> m, Map<int, Set<int>> inside, Set<Point<int>> path) {
-  for (int i = 0; i < m.length; i++) {
-    StringBuffer b0 = StringBuffer();
-    StringBuffer b1 = StringBuffer();
-    StringBuffer b2 = StringBuffer();
-
-    Set<int>? a = inside[i];
-    for (int j = 0; j < m[0].length; j++) {
-      if (a != null && a.contains(j)) {
-        modSB(b0, b1, b2, 'X', true);
-      } else {
-        modSB(b0, b1, b2, m[i][j], path.contains(Point<int>(i, j)));
-      }
-    }
-    print(b0);
-    print(b1);
-    print(b2);
-  }
-}
-
-void modSB(
-    StringBuffer b0, StringBuffer b1, StringBuffer b2, String c, bool draw) {
-  if (!draw) {
-    b0.write('   ');
-    b1.write('   ');
-    b2.write('   ');
-    return;
-  }
-  switch (c) {
-    case '.':
-      b0.write('   ');
-      b1.write(' O ');
-      b2.write('   ');
-    case 'X':
-      b0.write(r'***');
-      b1.write(r'*X*');
-      b2.write(r'***');
-    case '|':
-      b0.write(' | ');
-      b1.write(' | ');
-      b2.write(' | ');
-    case '-':
-      b0.write('   ');
-      b1.write('---');
-      b2.write('   ');
-    case 'L':
-      b0.write(' | ');
-      b1.write(' *-');
-      b2.write('   ');
-
-    case 'F':
-      b0.write('   ');
-      b1.write(' *-');
-      b2.write(' | ');
-
-    case 'J':
-      b0.write(' | ');
-      b1.write('-* ');
-      b2.write('   ');
-
-    case '7':
-      b0.write('   ');
-      b1.write('-* ');
-      b2.write(' | ');
-    case 'S':
-      b0.write(' *-');
-      b1.write(' | ');
-      b2.write('-* ');
-  }
 }
