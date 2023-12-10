@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:args/args.dart';
 
 import '1.dart';
+import '10.dart';
 import '2.dart';
 import '3.dart';
 import '4.dart';
@@ -12,7 +13,7 @@ import '7.dart';
 import '8.dart';
 import '9.dart';
 
-List<Function(bool)> jump = [d1, d2, d3, d4, d5, d6, d7, d8, d9];
+List<Function(bool)> jump = [d1, d2, d3, d4, d5, d6, d7, d8, d9, d10];
 void main(List<String> arguments) {
   exitCode = 0;
   final parser = ArgParser()
