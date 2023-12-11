@@ -39,3 +39,13 @@ List<String> getLines() => [
 bool inBounds(int r, int c, List<String> l) {
   return !(r < 0 || r >= l.length || c < 0 || c >= l[r].length);
 }
+
+bool _debug = true;
+void setDebug(bool d) => _debug = d;
+
+void dpr(Object? object) {
+  if (!_debug) {
+    return;
+  }
+  print(object);
+}

@@ -1,0 +1,30 @@
+Map<BitSet, int> best = HashMap(
+  isValidKey: (p0) => p0 is int,
+);
+
+// Given a set of already connected nodes, what's the best sum of distances?
+int bestSum(BitSet connected) {
+  assert(best.length < 512);
+  int bestSumInternal(BitSet c) {
+    int bs = 0;
+    for (int i = 0; i < n!.length; i++) {
+      if (c.contains(i)) {
+        continue;
+      }
+      for (int j = i; j < n!.length; j++) {
+        if (c.contains(j)) {
+          continue;
+        }
+
+        BitSet newSet = BitSet.of(c)
+          ..add(i)
+          ..add(j);
+
+        bs = max(bs, m(n![i], n![j]) + bestSum(newSet));
+      }
+    }
+    return bs;
+  }
+
+  return best.putIfAbsent(connected, () => bestSumInternal(connected));
+}
