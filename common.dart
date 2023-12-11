@@ -1,4 +1,12 @@
 import 'dart:io';
+import 'dart:math';
+
+typedef P = Point<int>;
+
+extension RCUtil on P {
+  int get r => this.x;
+  int get c => this.y;
+}
 
 Map<String, int> _digits =
     Map.fromEntries([for (int i = 0; i < 10; i++) MapEntry(i.toString(), i)]);
