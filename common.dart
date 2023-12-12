@@ -8,6 +8,18 @@ extension RCUtil on P {
   int get c => this.y;
 }
 
+extension SUtil on String {
+  int firstWhere(bool Function(int) test) {
+    int i = 0;
+    for (; i < this.length; i++) {
+      if (test(i)) {
+        return i;
+      }
+    }
+    return -1;
+  }
+}
+
 Map<String, int> _digits =
     Map.fromEntries([for (int i = 0; i < 10; i++) MapEntry(i.toString(), i)]);
 
