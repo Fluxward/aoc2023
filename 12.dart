@@ -2,17 +2,11 @@ import 'dart:collection';
 import 'common.dart';
 
 d12(bool s) {
-  setDebug(false);
-  print(getLines().fold<int>(0, (p, e) {
-    int c = processLine(e, s);
-    dpr(c);
-    return p + c;
-  }));
+  print(getLines().fold<int>(0, (p, e) => p + processLine(e, s)));
 }
 
 int processLine(String line, bool s) {
   List<String> d = line.split(' ');
-
   Map<K, int> w = HashMap();
   List<int> rs = stois(d[1], sep: ',');
   String data = d[0];
@@ -57,7 +51,7 @@ int waysMem(Map<K, int> w, String s, List<int> rs, K k, List<int> rSum) {
     // not enough # and ?.
     if (j < rs[sat]) return ways;
 
-    // check if we completed the last # string by the end of this string
+    // check if we completed the last # string by the end of the string
     if (i + j == s.length)
       return (j == rs[sat] && (sat + 1 == rs.length) ? 1 : 0) + ways;
 
