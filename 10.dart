@@ -136,30 +136,40 @@ void b10(List<String> m) {
   Map<Point<int>, pT> path =
       Map.fromIterable(p, key: (p) => p, value: (p) => m.pTat(p)!);
 
-  // track vertical crossings, horizontal crossings.
-
   int count = 0;
+  // line crossing algorithm to count included points.
   for (int i = 0; i < m.length; i++) {
     bool outside = true;
     pT? prevCorner = null;
     for (int j = 0; j < m[i].length; j++) {
       // only care about pipes on the path.
       pT? c = path[Point<int>(i, j)];
-      switch (c) {
-        case pT.ud:
-          outside = !outside;
-        case pT.ur:
-        case pT.dr:
-          // this will always happen before an l corner.
-          prevCorner = c;
-        case pT.ul:
-          outside = prevCorner == pT.dr ? !outside : outside;
-        case pT.dl:
-          outside = prevCorner == pT.ur ? !outside : outside;
-        default:
-      }
       if (c == null && !outside) {
         count += 1;
+        continue;
+      }
+
+      switch (c) {
+        // crossing a vertical line always flips your outsidedness.
+        case pT.ud:
+          outside = !outside;
+        // stated without proof:
+        // If you encounter a corner pipe connecting right, you necessarily will
+        // next encounter 0-n horizontal pipes and then a corner pipe connected
+        // left.
+        //
+        // If one pipe connects up and the other connects down, the outsidedness
+        // flips, otherwise it stays the same.
+        //
+        // You can draw yourself a few diagrams to convince yourself of this.
+        // Otherwise just study vector calculus or something.
+        case pT.ur:
+        case pT.dr:
+          prevCorner = c;
+        case pT.ul:
+        case pT.dl:
+          outside = c!.a != prevCorner!.a ? !outside : outside;
+        default:
       }
     }
   }
