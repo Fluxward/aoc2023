@@ -2,10 +2,63 @@ import 'dart:io';
 import 'dart:math';
 
 typedef P = Point<int>;
+typedef Ps = List<P>;
 
 extension RCUtil on P {
   int get r => this.x;
   int get c => this.y;
+}
+
+extension RCLUtil on Ps {
+  void rsort([bool ascending = true]) {
+    if (ascending) {
+      sort((a, b) => rComp(a, b));
+    } else {
+      sort(((a, b) => -rComp(a, b)));
+    }
+  }
+
+  void rcsort([bool ascending = true]) {
+    if (ascending) {
+      sort((a, b) => rcComp(a, b));
+    } else {
+      sort(((a, b) => -rcComp(a, b)));
+    }
+  }
+
+  void csort([bool ascending = true]) {
+    if (ascending) {
+      sort((a, b) => cComp(a, b));
+    } else {
+      sort(((a, b) => -cComp(a, b)));
+    }
+  }
+
+  void crsort([bool ascending = true]) {
+    if (ascending) {
+      sort((a, b) => crComp(a, b));
+    } else {
+      sort(((a, b) => -crComp(a, b)));
+    }
+  }
+
+  int rComp(P a, P b) {
+    return a.r - b.r;
+  }
+
+  int rcComp(P a, P b) {
+    int r = a.r - b.r;
+    return r == 0 ? a.c - b.c : r;
+  }
+
+  int cComp(P a, P b) {
+    return a.c - b.c;
+  }
+
+  int crComp(P a, P b) {
+    int c = a.c - b.c;
+    return c == 0 ? a.r - b.r : c;
+  }
 }
 
 extension SUtil on String {
