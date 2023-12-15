@@ -8,7 +8,10 @@ void d4(bool sub) {
 ({List<int> wn, List<int> n}) getNumbers(String line) {
   List<String> lr = line.split(" | ");
 
-  return (wn: (stoisPositive(lr[0].split(': ')[1])), n: (stoisPositive(lr[1])));
+  return (
+    wn: (stois(lr[0].split(': ')[1], sep: ' ')),
+    n: (stois(lr[1], sep: ' '))
+  );
 }
 
 void day4a(List<String> lines) {

@@ -44,7 +44,7 @@ List<List<RangeMapEntry>> getRanges(List<String> lines) {
       curEntry++;
       entries.add(List.empty(growable: true));
     } else if (lines[i].isNotEmpty) {
-      List<int> r = stoisPositive(lines[i]);
+      List<int> r = stois(lines[i], sep: ' ');
       entries[curEntry].add(RangeMapEntry(r[1], r[0], r[2]));
     }
   }
@@ -66,7 +66,7 @@ List<List<RangeMapEntry>> getRanges(List<String> lines) {
 }
 
 void day5a(List<String> lines) {
-  List<int> seeds = stoisPositive(lines[0].split(': ')[1]);
+  List<int> seeds = stois(lines[0].split(': ')[1], sep: ' ');
 
   List<List<RangeMapEntry>> ranges = getRanges(lines);
 
@@ -95,7 +95,7 @@ void day5a(List<String> lines) {
 }
 
 void day5b(List<String> lines) {
-  List<int> seeds = stoisPositive(lines[0].split(': ')[1]);
+  List<int> seeds = stois(lines[0].split(': ')[1], sep: ' ');
   List<(int, int)> seedRanges = List.generate(seeds.length >> 1,
       (i) => (seeds[2 * i], seeds[2 * i] + seeds[2 * i + 1] - 1));
 
