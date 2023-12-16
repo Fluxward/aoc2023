@@ -118,3 +118,32 @@ void dpr(Object? object) {
   }
   print(object);
 }
+
+enum dir {
+  u(Point<int>(-1, 0)),
+  d(Point<int>(1, 0)),
+  l(Point<int>(0, -1)),
+  r(Point<int>(0, 1));
+
+  final Point<int> p;
+  const dir(this.p);
+
+  dir rev() {
+    switch (this) {
+      case u:
+        return d;
+      case d:
+        return u;
+      case l:
+        return r;
+      case r:
+        return l;
+    }
+  }
+
+  Point<int> operator +(other) => other + p;
+}
+
+extension PointAccess on List<String> {
+  String at(P p) => this[p.r][p.c];
+}
