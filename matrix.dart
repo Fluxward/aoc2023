@@ -1,3 +1,5 @@
+import 'common.dart';
+
 class M<T> {
   List<List<T>> data = [];
 
@@ -7,4 +9,13 @@ class M<T> {
     assert(d.every((element) => element.length == l));
     data = List.generate(d.length, (i) => List.generate(l, (j) => d[i][j]));
   }
+
+  T at(P p) => data[p.r][p.c];
+
+  List<T> operator [](int i) {
+    return data[i];
+  }
+
+  bool inBounds(P p) =>
+      p.r >= 0 && p.c >= 0 && p.r < data.length && p.c < data[0].length;
 }

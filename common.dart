@@ -141,6 +141,32 @@ enum dir {
     }
   }
 
+  dir get rt {
+    switch (this) {
+      case u:
+        return r;
+      case d:
+        return l;
+      case l:
+        return u;
+      case r:
+        return d;
+    }
+  }
+
+  dir get lt {
+    switch (this) {
+      case u:
+        return l;
+      case d:
+        return r;
+      case l:
+        return d;
+      case r:
+        return u;
+    }
+  }
+
   Point<int> operator +(other) => other + p;
 }
 
