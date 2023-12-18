@@ -9,7 +9,7 @@ d18(bool s) {
   getPerim(perim, lines, s);
   print("perimeter: ${stopwatch.elapsed}");
   print(iarea(perim).abs() + perimPad(perim));
-  print("are: ${stopwatch.elapsed}");
+  print("area: ${stopwatch.elapsed}");
 }
 
 (dir, int) parse(String l, bool s) {
@@ -25,7 +25,7 @@ d18(bool s) {
         di = dir.d;
       case '2':
         di = dir.l;
-      default: // this will never happen, probably
+      default:
         di = dir.u;
     }
 
@@ -40,8 +40,7 @@ d18(bool s) {
       di = dir.l;
     case 'D':
       di = dir.d;
-    case 'U':
-    default: // this will never happen, probably
+    default:
       di = dir.u;
   }
 
@@ -49,28 +48,22 @@ d18(bool s) {
 }
 
 void getPerim(Ps perim, List<String> lines, bool subset) {
-  P cur = P(1, 1);
+  P cur = P(0, 0);
   for (String l in lines) {
     (dir, int) d = parse(l, subset);
-
     cur += (d.$1.p) * d.$2;
     perim.add(cur);
   }
 }
 
 int perimPad(Ps perim) {
-  int quarters = 0;
+  int extra = 0;
   int n = perim.length;
   for (int i = 0; i < n; i++) {
     P a = perim[(n + i - 1) % n];
     P b = perim[i];
-
-    int cur = ccw(a, b, perim[(i + 1) % n]);
-
-    P d = b - a;
-    quarters += d.x == 0 ? 2 * (d.y.abs() - 1) : 2 * (d.x.abs() - 1);
-    quarters += cur < 0 ? 3 : 1;
+    P c = b - a;
+    extra += c.x == 0 ? 2 * (c.y.abs() - 1) : 2 * (c.x.abs() - 1);
   }
-
-  return quarters ~/ 4;
+  return (extra + 12 + 2 * (perim.length - 4)) ~/ 4;
 }
