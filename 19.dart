@@ -1,6 +1,3 @@
-import 'dart:html';
-
-import 'bitset.dart';
 import 'common.dart';
 
 RegExp re = RegExp(r'([^{}]+)');
@@ -31,6 +28,20 @@ d19(bool s) {
 
     print(ps.fold<int>(0, (p, e) => p + (accepted(e, 'in', wfs) ? e.sum : 0)));
   }
+
+  Map<mem, (int, int)> map = {
+    mem.x: (1, 4001),
+    mem.m: (1, 4001),
+    mem.a: (1, 4001),
+    mem.s: (1, 4001)
+  };
+
+  List<RangePart> rs = rangeTester(RangePart(map), "in", wfs);
+
+  print("accepted ranges:");
+  rs.forEach((element) => print(element.rs));
+
+  print(rs.fold<int>(0, (p, e) => p + e.mult()));
 }
 
 bool accepted(Part p, String cwf, Map<String, List<Rule>> wfs) {
@@ -51,6 +62,35 @@ bool accepted(Part p, String cwf, Map<String, List<Rule>> wfs) {
 
   assert(false);
   return false;
+}
+
+List<RangePart> rangeTester(
+    RangePart p, String cwf, Map<String, List<Rule>> wfs) {
+  print("testing $cwf");
+  List<RangePart> accepted = [];
+
+  RangePart cur = p;
+  List<RangePart> open = [cur];
+
+  for (Rule r in wfs[cwf]!) {
+    List<tr> trs = open.expand((e) => r.rangeTest(e)).toList();
+    open.clear();
+
+    //r.rangeTest(cur);
+
+    for (int i = 0; i < trs.length; i++) {
+      tr r = trs[i];
+      if (r.aed == true) {
+        accepted.add(r.rp);
+      } else if (r.dest != null) {
+        accepted.addAll(rangeTester(r.rp, r.dest!, wfs));
+      } else if (r.aed != false) {
+        open.add(r.rp);
+      }
+    }
+  }
+
+  return accepted;
 }
 
 (String, List<Rule>) parseWorkflow(String s) {
@@ -128,15 +168,17 @@ class RangePart {
       return [];
     }
 
-    (int, int) range1 = (range.$1, split);
-    (int, int) range2 = (range.$2, split);
     Map<mem, (int, int)> map1 = Map.of(rs);
     Map<mem, (int, int)> map2 = Map.of(rs);
 
-    map1[m] = range1;
-    map2[m] = range2;
+    map1[m] = (range.$1, split);
+    map2[m] = (split, range.$2);
 
     return [RangePart(map1), RangePart(map2)];
+  }
+
+  int mult() {
+    return mem.values.fold<int>(1, (p, e) => p * (rs[e]!.$2 - rs[e]!.$1));
   }
 }
 
@@ -246,6 +288,8 @@ class Rule {
   }
 
   List<tr> rangeTest(RangePart p) {
+    print("testing $this on:");
+    print(p.rs);
     if (compLt == null) {
       return [tr(aed: accepted, dest: dest, rp: p)];
     }
@@ -257,6 +301,13 @@ class Rule {
     }
 
     List<RangePart> lr = p.split(m!, split);
+    if (lr.isEmpty) {
+      if ((compLt == true && p.rs[m!]!.$2 < v!) ||
+          (compLt == false && p.rs[m!]!.$2 > v!)) {
+        return [tr(rp: p, aed: accepted, dest: dest)];
+      }
+      return [tr(rp: p)];
+    }
 
     if (compLt == true) {
       return [tr(rp: lr[0], aed: accepted, dest: dest), tr(rp: lr[1])];
