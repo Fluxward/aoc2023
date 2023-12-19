@@ -36,15 +36,9 @@ Rule parseRule(String s) {
   List<String> d = s.split(':');
   Jump res = Jump.parse(d[1]);
 
-  if (d[0].contains('<')) {
-    List<String> d2 = d[0].split('<');
-    return CompRule(true, 'xmas'.firstWhere((p) => d2[0] == 'xmas'[p]),
-        int.parse(d2[1]), res);
-  }
-
-  List<String> d2 = d[0].split('>');
-  return CompRule(false, 'xmas'.firstWhere((p) => d2[0] == 'xmas'[p]),
-      int.parse(d2[1]), res);
+  List<String> d2 = d[0].split(RegExp(r'[<>]'));
+  return CompRule(d[0].contains('<'),
+      'xmas'.firstWhere((p) => d2[0] == 'xmas'[p]), int.parse(d2[1]), res);
 }
 
 bool accepted(Part p, String cwf, Map<String, List<Rule>> wfs) {
@@ -94,21 +88,16 @@ abstract class Rule {
 }
 
 class Jump implements Rule {
-  bool hasResult;
+  bool get hasResult => aed != null || des != null;
   bool? aed;
   String? des;
 
-  Jump({this.hasResult = false, this.aed, this.des});
+  Jump({this.aed, this.des});
 
   static Jump parse(String s) {
-    switch (s) {
-      case 'A':
-        return Jump(hasResult: true, aed: true);
-      case 'R':
-        return Jump(hasResult: true, aed: false);
-      default:
-        return Jump(hasResult: true, des: s);
-    }
+    if (s == 'A') return Jump(aed: true);
+    if (s == 'R') return Jump(aed: false);
+    return Jump(des: s);
   }
 
   Jump test(Part p) => this;
