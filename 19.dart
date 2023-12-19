@@ -1,5 +1,8 @@
 import 'common.dart';
 
+typedef Part = List<int>;
+typedef Range = List<(int, int)>;
+
 d19(bool s) {
   List<String> ls = getLines();
   Map<String, List<Rule>> wfs = Map.fromEntries(
@@ -8,18 +11,19 @@ d19(bool s) {
   if (!s) {
     print([
       for (int i = wfs.length + 1; i < ls.length; i++)
-        Part(ls[i]
+        ls[i]
             .substring(1, ls[i].length - 1)
             .split(',')
             .map((e) => int.parse(e.split('=')[1]))
-            .toList())
-    ].where((p) => accepted(p, "in", wfs)).fold<int>(0, (p, e) => p + e.sum));
+            .toList()
+    ]
+        .where((p) => accepted(p, "in", wfs))
+        .fold<int>(0, (p, e) => p + e.fold(0, (p, e) => p + e)));
     return;
   }
 
-  print(rangeTester(
-          Range([(1, 4001), (1, 4001), (1, 4001), (1, 4001)]), "in", wfs)
-      .fold<int>(0, (p, e) => p + e.mult()));
+  print(rangeTester([(1, 4001), (1, 4001), (1, 4001), (1, 4001)], "in", wfs)
+      .fold<int>(0, (p, e) => p + e.fold<int>(1, (p, e) => p * (e.$2 - e.$1))));
 }
 
 MapEntry<String, List<Rule>> parseWorkflow(String s) {
@@ -61,9 +65,7 @@ bool accepted(Part p, String cwf, Map<String, List<Rule>> wfs) {
 
 List<Range> rangeTester(Range p, String cwf, Map<String, List<Rule>> wfs) {
   List<Range> accepted = [];
-
-  Range cur = p;
-  List<Range> open = [cur];
+  List<Range> open = [p];
 
   for (Rule r in wfs[cwf]!) {
     List<tr> trs = open.expand((e) => r.rtest(e)).toList();
@@ -81,22 +83,6 @@ List<Range> rangeTester(Range p, String cwf, Map<String, List<Rule>> wfs) {
   }
 
   return accepted;
-}
-
-class Part {
-  final List<int> ps;
-
-  Part(this.ps);
-
-  int get sum => ps.fold(0, (p, e) => p + e);
-}
-
-class Range {
-  final List<(int, int)> rs;
-
-  Range(this.rs);
-
-  int mult() => rs.fold<int>(1, (p, e) => p * (e.$2 - e.$1));
 }
 
 class tr {
@@ -142,21 +128,21 @@ class CompRule implements Rule {
   final Jump res;
   CompRule(this.lt, this.m, this.v, this.res);
 
-  Jump test(Part p) => (lt ? p.ps[m] < v : p.ps[m] > v) ? res : Jump();
+  Jump test(Part p) => (lt ? p[m] < v : p[m] > v) ? res : Jump();
 
   List<tr> rtest(Range p) {
     int split = v + (lt ? 0 : 1);
 
-    if (p.rs[m].$1 > split || p.rs[m].$2 <= split) {
-      return [tr(p, (lt ? p.rs[m].$2 < v : p.rs[m].$2 > v) ? res : Jump())];
+    if (p[m].$1 > split || p[m].$2 <= split) {
+      return [tr(p, (lt ? p[m].$2 < v : p[m].$2 > v) ? res : Jump())];
     }
 
-    List<(int, int)> l1 = List.of(p.rs);
-    List<(int, int)> l2 = List.of(p.rs);
+    Range l1 = Range.of(p);
+    Range l2 = Range.of(p);
 
-    l1[m] = (p.rs[m].$1, split);
-    l2[m] = (split, p.rs[m].$2);
+    l1[m] = (p[m].$1, split);
+    l2[m] = (split, p[m].$2);
 
-    return [tr(Range(l1), lt ? res : Jump()), tr(Range(l2), lt ? Jump() : res)];
+    return [tr(l1, lt ? res : Jump()), tr(l2, lt ? Jump() : res)];
   }
 }
