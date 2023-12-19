@@ -12,6 +12,7 @@ d19(bool s) {
     wfs[d.$1] = d.$2;
     i++;
   }
+
   if (!s) {
     i++;
 
@@ -22,21 +23,16 @@ d19(bool s) {
           .split(',')
           .map((e) => int.parse(e.split('=')[1]))
           .toList();
-      ps.add(Part(d[0], d[1], d[2], d[3]));
+      ps.add(Part(d));
       i++;
     }
 
     print(ps.fold<int>(0, (p, e) => p + (accepted(e, 'in', wfs) ? e.sum : 0)));
   }
 
-  Map<mem, (int, int)> map = {
-    mem.x: (1, 4001),
-    mem.m: (1, 4001),
-    mem.a: (1, 4001),
-    mem.s: (1, 4001)
-  };
+  List<(int, int)> r = [(1, 4001), (1, 4001), (1, 4001), (1, 4001)];
 
-  List<RangePart> rs = rangeTester(RangePart(map), "in", wfs);
+  List<RangePart> rs = rangeTester(RangePart(r), "in", wfs);
 
   print("accepted ranges:");
   rs.forEach((element) => print(element.rs));
@@ -129,7 +125,7 @@ Rule parseRule(String s) {
     List<String> d2 = d[0].split('<');
     return Rule(
         compLt: true,
-        m: mem.stop(d2[0]),
+        m: 'xmas'.firstWhere((p) => d2[0] == 'xmas'[p]),
         v: int.parse(d2[1]),
         accepted: accepted,
         dest: dest);
@@ -138,80 +134,45 @@ Rule parseRule(String s) {
   List<String> d2 = d[0].split('>');
   return Rule(
       compLt: false,
-      m: mem.stop(d2[0]),
+      m: 'xmas'.firstWhere((p) => d2[0] == 'xmas'[p]),
       v: int.parse(d2[1]),
       accepted: accepted,
       dest: dest);
 }
 
 class Part {
-  final int x;
-  final int m;
-  final int a;
-  final int s;
+  final List<int> xmas;
 
-  Part(this.x, this.m, this.a, this.s);
+  Part(this.xmas);
 
-  int get sum => x + m + a + s;
+  int get sum => xmas.fold(0, (p, e) => p + e);
 }
 
 class RangePart {
-  final Map<mem, (int, int)> rs;
+  final List<(int, int)> rs;
 
   RangePart(this.rs);
 
   // range 1 ends at split, exclusive
-  List<RangePart> split(mem m, int split) {
-    (int, int) range = rs[m]!;
+  List<RangePart> split(int m, int split) {
+    (int, int) range = rs[m];
 
     if (split < range.$1 || split >= range.$2) {
       return [];
     }
 
-    Map<mem, (int, int)> map1 = Map.of(rs);
-    Map<mem, (int, int)> map2 = Map.of(rs);
+    List<(int, int)> l1 = List.of(rs);
+    List<(int, int)> l2 = List.of(rs);
 
-    map1[m] = (range.$1, split);
-    map2[m] = (split, range.$2);
+    l1[m] = (range.$1, split);
+    l2[m] = (split, range.$2);
 
-    return [RangePart(map1), RangePart(map2)];
+    return [RangePart(l1), RangePart(l2)];
   }
 
   int mult() {
-    return mem.values.fold<int>(1, (p, e) => p * (rs[e]!.$2 - rs[e]!.$1));
-  }
-}
-
-enum mem {
-  x(),
-  m(),
-  a(),
-  s();
-
-  static mem stop(String st) {
-    switch (st) {
-      case 'x':
-        return x;
-      case 'm':
-        return m;
-      case 'a':
-        return a;
-      default:
-        return s;
-    }
-  }
-
-  int toInt() {
-    switch (m) {
-      case x:
-        return 0;
-      case m:
-        return 1;
-      case a:
-        return 2;
-      case s:
-        return 3;
-    }
+    return List.generate(4, (i) => i)
+        .fold<int>(1, (p, e) => p * (rs[e].$2 - rs[e].$1));
   }
 }
 
@@ -225,7 +186,7 @@ class tr {
 
 class Rule {
   final bool? compLt;
-  final mem? m;
+  final int? m;
 
   final int? v;
   final bool? accepted;
@@ -244,16 +205,7 @@ class Rule {
 
     StringBuffer s = StringBuffer();
 
-    switch (m!) {
-      case mem.x:
-        s.write('x');
-      case mem.m:
-        s.write('m');
-      case mem.a:
-        s.write('a');
-      case mem.s:
-        s.write('s');
-    }
+    s.write('xmas'[m!]);
 
     s.write(compLt! ? '<' : '>');
     s.write(v);
@@ -267,20 +219,7 @@ class Rule {
       return (accepted, dest);
     }
 
-    int comp;
-
-    switch (m!) {
-      case mem.x:
-        comp = p.x;
-      case mem.m:
-        comp = p.m;
-      case mem.a:
-        comp = p.a;
-      case mem.s:
-        comp = p.s;
-    }
-
-    comp -= v!;
+    int comp = p.xmas[m!] - v!;
 
     bool sat = compLt! ? comp < 0 : comp > 0;
 
@@ -288,8 +227,6 @@ class Rule {
   }
 
   List<tr> rangeTest(RangePart p) {
-    print("testing $this on:");
-    print(p.rs);
     if (compLt == null) {
       return [tr(aed: accepted, dest: dest, rp: p)];
     }
@@ -302,8 +239,8 @@ class Rule {
 
     List<RangePart> lr = p.split(m!, split);
     if (lr.isEmpty) {
-      if ((compLt == true && p.rs[m!]!.$2 < v!) ||
-          (compLt == false && p.rs[m!]!.$2 > v!)) {
+      if ((compLt == true && p.rs[m!].$2 < v!) ||
+          (compLt == false && p.rs[m!].$2 > v!)) {
         return [tr(rp: p, aed: accepted, dest: dest)];
       }
       return [tr(rp: p)];
