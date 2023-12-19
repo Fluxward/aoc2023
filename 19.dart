@@ -2,31 +2,24 @@ import 'common.dart';
 
 d19(bool s) {
   List<String> ls = getLines();
-
-  int i = 0;
-
-  Map<String, List<Rule>> wfs =
-      Map.fromEntries([for (; ls[i].isNotEmpty; i++) parseWorkflow(ls[i])]);
+  Map<String, List<Rule>> wfs = Map.fromEntries(
+      [for (int i = 0; ls[i].isNotEmpty; i++) parseWorkflow(ls[i])]);
 
   if (!s) {
-    List<Part> ps = [];
-    for (i = i + 1; i < ls.length; i++) {
-      List<int> d = ls[i]
-          .substring(1, ls[i].length - 1)
-          .split(',')
-          .map((e) => int.parse(e.split('=')[1]))
-          .toList();
-      ps.add(Part(d));
-    }
-
-    print(ps
-        .where((p) => accepted(p, "in", wfs))
-        .fold<int>(0, (p, e) => p + e.sum));
+    print([
+      for (int i = wfs.length + 1; i < ls.length; i++)
+        Part(ls[i]
+            .substring(1, ls[i].length - 1)
+            .split(',')
+            .map((e) => int.parse(e.split('=')[1]))
+            .toList())
+    ].where((p) => accepted(p, "in", wfs)).fold<int>(0, (p, e) => p + e.sum));
     return;
   }
-  List<Range> rs = rangeTester(
-      Range([(1, 4001), (1, 4001), (1, 4001), (1, 4001)]), "in", wfs);
-  print(rs.fold<int>(0, (p, e) => p + e.mult()));
+
+  print(rangeTester(
+          Range([(1, 4001), (1, 4001), (1, 4001), (1, 4001)]), "in", wfs)
+      .fold<int>(0, (p, e) => p + e.mult()));
 }
 
 MapEntry<String, List<Rule>> parseWorkflow(String s) {
@@ -103,17 +96,14 @@ class Range {
 
   Range(this.rs);
 
-  int mult() {
-    return List.generate(4, (i) => i)
-        .fold<int>(1, (p, e) => p * (rs[e].$2 - rs[e].$1));
-  }
+  int mult() => rs.fold<int>(1, (p, e) => p * (e.$2 - e.$1));
 }
 
 class tr {
   Jump jump;
   final Range rp;
 
-  tr({required this.jump, required this.rp});
+  tr(this.rp, this.jump);
 }
 
 abstract class Rule {
@@ -140,13 +130,9 @@ class Jump implements Rule {
     }
   }
 
-  Jump test(Part p) {
-    return this;
-  }
+  Jump test(Part p) => this;
 
-  List<tr> rtest(Range p) {
-    return [tr(rp: p, jump: this)];
-  }
+  List<tr> rtest(Range p) => [tr(p, this)];
 }
 
 class CompRule implements Rule {
@@ -156,17 +142,13 @@ class CompRule implements Rule {
   final Jump res;
   CompRule(this.lt, this.m, this.v, this.res);
 
-  Jump test(Part p) {
-    return (lt ? p.ps[m] < v : p.ps[m] > v) ? res : Jump();
-  }
+  Jump test(Part p) => (lt ? p.ps[m] < v : p.ps[m] > v) ? res : Jump();
 
   List<tr> rtest(Range p) {
     int split = v + (lt ? 0 : 1);
 
     if (p.rs[m].$1 > split || p.rs[m].$2 <= split) {
-      return (lt ? p.rs[m].$2 < v : p.rs[m].$2 > v)
-          ? [tr(rp: p, jump: res)]
-          : [tr(rp: p, jump: Jump())];
+      return [tr(p, (lt ? p.rs[m].$2 < v : p.rs[m].$2 > v) ? res : Jump())];
     }
 
     List<(int, int)> l1 = List.of(p.rs);
@@ -175,8 +157,6 @@ class CompRule implements Rule {
     l1[m] = (p.rs[m].$1, split);
     l2[m] = (split, p.rs[m].$2);
 
-    return lt
-        ? [tr(rp: Range(l1), jump: res), tr(rp: Range(l2), jump: Jump())]
-        : [tr(rp: Range(l1), jump: Jump()), tr(rp: Range(l2), jump: res)];
+    return [tr(Range(l1), lt ? res : Jump()), tr(Range(l2), lt ? Jump() : res)];
   }
 }
