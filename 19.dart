@@ -17,10 +17,10 @@ d19(bool _) {
           .toList()
   ]
       .where((p) => accepted(p, "in", wfs))
-      .fold<int>(0, (p, e) => p + e.fold(0, (p, e) => p + e)));
+      .fold<int>(0, (p, e) => p + e.fold(0, (q, f) => q + f)));
 
   print(rangeTester([(1, 4001), (1, 4001), (1, 4001), (1, 4001)], "in", wfs)
-      .fold<int>(0, (p, e) => p + e.fold<int>(1, (p, e) => p * (e.$2 - e.$1))));
+      .fold<int>(0, (p, e) => p + e.fold<int>(1, (q, f) => q * (f.$2 - f.$1))));
 }
 
 MapEntry<String, List<Rule>> parseWorkflow(String s) {
@@ -44,8 +44,7 @@ Rule parseRule(String s) {
 bool accepted(Part p, String cwf, Map<String, List<Rule>> wfs) {
   List<Rule> ts = wfs[cwf]!;
 
-  for (int i = 0; i < ts.length; i++) {
-    Jump r = ts[i].test(p);
+  for (Jump r in ts.map((e) => e.test(p))) {
     if (!r.hasResult) continue;
     return r.des != null ? accepted(p, r.des!, wfs) : r.aed == true;
   }
@@ -56,10 +55,9 @@ List<Range> rangeTester(Range p, String cwf, Map<String, List<Rule>> wfs) {
   List<Range> accepted = [];
   List<Range> open = [p];
 
-  for (Rule r in wfs[cwf]!) {
-    List<tr> trs = open.expand((e) => r.rtest(e)).toList();
+  for (List<tr> trs
+      in wfs[cwf]!.map((r) => open.expand((e) => r.rtest(e)).toList())) {
     open.clear();
-
     for (tr r in trs) {
       if (!r.jump.hasResult) {
         open.add(r.rp);
@@ -122,7 +120,6 @@ class CompRule implements Rule {
 
     Range l1 = Range.of(p);
     Range l2 = Range.of(p);
-
     l1[m] = (p[m].$1, split);
     l2[m] = (split, p[m].$2);
 
