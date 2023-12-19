@@ -8,67 +8,25 @@ d19(bool s) {
   Map<String, List<Rule>> wfs =
       Map.fromEntries([for (; ls[i].isNotEmpty; i++) parseWorkflow(ls[i])]);
 
-  List<Part> ps = [];
-  for (i = i + 1; i < ls.length; i++) {
-    List<int> d = ls[i]
-        .substring(1, ls[i].length - 1)
-        .split(',')
-        .map((e) => int.parse(e.split('=')[1]))
-        .toList();
-    ps.add(Part(d));
+  if (!s) {
+    List<Part> ps = [];
+    for (i = i + 1; i < ls.length; i++) {
+      List<int> d = ls[i]
+          .substring(1, ls[i].length - 1)
+          .split(',')
+          .map((e) => int.parse(e.split('=')[1]))
+          .toList();
+      ps.add(Part(d));
+    }
+
+    print(ps
+        .where((p) => accepted(p, "in", wfs))
+        .fold<int>(0, (p, e) => p + e.sum));
+    return;
   }
-
-  print(ps
-      .where((p) => accepted(p, "in", wfs))
-      .fold<int>(0, (p, e) => p + e.sum));
-
   List<Range> rs = rangeTester(
       Range([(1, 4001), (1, 4001), (1, 4001), (1, 4001)]), "in", wfs);
   print(rs.fold<int>(0, (p, e) => p + e.mult()));
-}
-
-bool accepted(Part p, String cwf, Map<String, List<Rule>> wfs) {
-  List<Rule> ts = wfs[cwf]!;
-
-  for (int i = 0; i < ts.length; i++) {
-    Jump r = ts[i].test(p);
-    if (!r.hasResult) {
-      continue;
-    }
-
-    if (r.des != null) {
-      return accepted(p, r.des!, wfs);
-    } else {
-      return r.aed == true;
-    }
-  }
-
-  return false;
-}
-
-List<Range> rangeTester(Range p, String cwf, Map<String, List<Rule>> wfs) {
-  List<Range> accepted = [];
-
-  Range cur = p;
-  List<Range> open = [cur];
-
-  for (Rule r in wfs[cwf]!) {
-    List<tr> trs = open.expand((e) => r.rtest(e)).toList();
-    open.clear();
-
-    for (int i = 0; i < trs.length; i++) {
-      tr r = trs[i];
-      if (!r.jump.hasResult) {
-        open.add(r.rp);
-      } else if (r.jump.aed == true) {
-        accepted.add(r.rp);
-      } else if (r.jump.des != null) {
-        accepted.addAll(rangeTester(r.rp, r.jump.des!, wfs));
-      }
-    }
-  }
-
-  return accepted;
 }
 
 MapEntry<String, List<Rule>> parseWorkflow(String s) {
@@ -95,6 +53,43 @@ Rule parseRule(String s) {
       int.parse(d2[1]), res);
 }
 
+bool accepted(Part p, String cwf, Map<String, List<Rule>> wfs) {
+  List<Rule> ts = wfs[cwf]!;
+
+  for (int i = 0; i < ts.length; i++) {
+    Jump r = ts[i].test(p);
+    if (!r.hasResult) {
+      continue;
+    }
+    return r.des != null ? accepted(p, r.des!, wfs) : r.aed == true;
+  }
+  return false;
+}
+
+List<Range> rangeTester(Range p, String cwf, Map<String, List<Rule>> wfs) {
+  List<Range> accepted = [];
+
+  Range cur = p;
+  List<Range> open = [cur];
+
+  for (Rule r in wfs[cwf]!) {
+    List<tr> trs = open.expand((e) => r.rtest(e)).toList();
+    open.clear();
+
+    for (tr r in trs) {
+      if (!r.jump.hasResult) {
+        open.add(r.rp);
+      } else if (r.jump.aed == true) {
+        accepted.add(r.rp);
+      } else if (r.jump.des != null) {
+        accepted.addAll(rangeTester(r.rp, r.jump.des!, wfs));
+      }
+    }
+  }
+
+  return accepted;
+}
+
 class Part {
   final List<int> ps;
 
@@ -107,22 +102,6 @@ class Range {
   final List<(int, int)> rs;
 
   Range(this.rs);
-
-  List<Range> split(int m, int split) {
-    (int, int) range = rs[m];
-
-    if (split < range.$1 || split >= range.$2) {
-      return [];
-    }
-
-    List<(int, int)> l1 = List.of(rs);
-    List<(int, int)> l2 = List.of(rs);
-
-    l1[m] = (range.$1, split);
-    l2[m] = (split, range.$2);
-
-    return [Range(l1), Range(l2)];
-  }
 
   int mult() {
     return List.generate(4, (i) => i)
@@ -184,15 +163,20 @@ class CompRule implements Rule {
   List<tr> rtest(Range p) {
     int split = v + (lt ? 0 : 1);
 
-    List<Range> lr = p.split(m, split);
-    if (lr.isEmpty) {
+    if (p.rs[m].$1 > split || p.rs[m].$2 <= split) {
       return (lt ? p.rs[m].$2 < v : p.rs[m].$2 > v)
           ? [tr(rp: p, jump: res)]
           : [tr(rp: p, jump: Jump())];
     }
 
+    List<(int, int)> l1 = List.of(p.rs);
+    List<(int, int)> l2 = List.of(p.rs);
+
+    l1[m] = (p.rs[m].$1, split);
+    l2[m] = (split, p.rs[m].$2);
+
     return lt
-        ? [tr(rp: lr[0], jump: res), tr(rp: lr[1], jump: Jump())]
-        : [tr(rp: lr[0], jump: Jump()), tr(rp: lr[1], jump: res)];
+        ? [tr(rp: Range(l1), jump: res), tr(rp: Range(l2), jump: Jump())]
+        : [tr(rp: Range(l1), jump: Jump()), tr(rp: Range(l2), jump: res)];
   }
 }
