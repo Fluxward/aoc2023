@@ -1,6 +1,8 @@
 class BitSet implements Set<int> {
   final List<int> _set;
 
+  int _length = 0;
+
   BitSet(int size) : _set = List.filled((size / 64).ceil(), 0);
 
   void _panic() => throw Error();
@@ -16,14 +18,15 @@ class BitSet implements Set<int> {
     _maybeRangePanic(value);
 
     if (contains(value)) {
-      return true;
+      return false;
     }
+    _length += 1;
     int n = value ~/ 64;
     int b = value % 64;
 
     _set[n] |= (1 << b);
 
-    return false;
+    return true;
   }
 
   @override
@@ -150,7 +153,7 @@ class BitSet implements Set<int> {
 
   @override
   // TODO: implement length
-  int get length => throw UnimplementedError();
+  int get length => _length;
 
   @override
   int? lookup(Object? object) {
