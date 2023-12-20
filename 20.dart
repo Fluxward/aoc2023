@@ -31,6 +31,7 @@ d20(bool b) {
     }
     if (i == 1000 && !b) {
       print("$lPulses, $hPulses, ${lPulses * hPulses}");
+      return;
     }
   }
 
