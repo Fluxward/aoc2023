@@ -4,6 +4,7 @@ import 'package:args/args.dart';
 
 import '1.dart';
 import '10.dart';
+import '20.dart';
 import '11.dart';
 import '12.dart';
 import '13.dart';
@@ -23,6 +24,7 @@ import '8.dart';
 import '9.dart';
 
 List<Function(bool)> jump = [
+  (_) {},
   d1,
   d2,
   d3,
@@ -42,6 +44,7 @@ List<Function(bool)> jump = [
   d17,
   d18,
   d19,
+  d20,
 ];
 void main(List<String> arguments) {
   exitCode = 0;
@@ -54,6 +57,6 @@ void main(List<String> arguments) {
 
   int? to = int.tryParse(argResults['day']);
   if (to != null) {
-    jump[to - 1](s);
+    jump[to](s);
   }
 }
