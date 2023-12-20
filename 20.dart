@@ -4,12 +4,10 @@ import 'common.dart';
 
 d20(bool b) {
   initModules();
+  setDebug(false);
 
   Stopwatch sw = Stopwatch()..start();
-  for (int i = 0; i < 1000000000000000000 && !(b && done); i++) {
-    if (i % 100000 == 0) {
-      print(sw.elapsed);
-    }
+  for (int i = 0; i < 10000 && !(b && done); i++) {
     buttonPresses++;
     bt.recv(false, bt.id); // add a button press to the queue
 
@@ -23,7 +21,7 @@ d20(bool b) {
       }
 
       for (String s in t.$2) {
-        //print("${t.$3} -${t.$1 ? 'high' : 'low'}-> $s");
+        dpr("${t.$3} -${t.$1 ? 'high' : 'low'}-> $s");
         mods[s]!.recv(t.$1, t.$3);
         if (b && done) {
           print(sw.elapsed);
@@ -31,8 +29,13 @@ d20(bool b) {
         }
       }
     }
+    if (i == 1000 && !b) {
+      print("$lPulses, $hPulses, ${lPulses * hPulses}");
+    }
   }
-  print("$lPulses, $hPulses, ${lPulses * hPulses}");
+
+  Com ft = mods['ft'] as Com;
+  print(ft.cycles.values.fold<int>(1, (p, e) => p = lcm(p, e[0])));
 }
 
 Queue<(bool, List<String>, String)> q = Queue();
@@ -47,6 +50,8 @@ int lPulses = 0;
 
 abstract class Mod {
   String id;
+  String? pref;
+  Set<String> ins = {};
   List<String> out = [];
 
   Mod(this.id);
@@ -71,13 +76,20 @@ class Utm extends Mod {
 
 class Ffm extends Mod {
   bool on = false;
+  List<int> cycles = [];
 
-  Ffm(super.id);
+  Ffm(super.id) {
+    this.pref = "FF";
+  }
 
   void recv(bool high, String _) {
     super.recv(high, _);
     if (high) return;
+    bool p = on;
     on = high ? on : !on;
+    if (p != on) {
+      cycles.add(buttonPresses);
+    }
     send(on);
   }
 }
@@ -85,17 +97,21 @@ class Ffm extends Mod {
 class Com extends Mod {
   Map<String, bool> vals = {};
   int nH = 0;
+  Map<String, List<int>> cycles = {};
 
-  Com(super.id);
+  Com(super.id) {
+    this.pref = "CN";
+  }
 
   void recv(bool high, String senderId) {
     super.recv(high, senderId);
     bool p = vals[senderId]!;
 
     vals[senderId] = high;
-
     if (p != high) {
       nH = high ? nH + 1 : nH - 1;
+      List<int> l = cycles.putIfAbsent(senderId, () => <int>[]);
+      l.add(buttonPresses);
     }
 
     send(nH != vals.length);
@@ -149,12 +165,20 @@ void initModules() {
   for (Mod m in mods.values) {
     for (String s in m.out) {
       Mod? c = mods[s];
+
       if (c is Com) {
         c.vals[m.id] = false;
       } else if (c == null) {
-        untyped.add(Utm(s));
+        c = Utm(s);
+        untyped.add(c);
+        continue;
       }
     }
   }
   untyped.forEach((element) => mods[element.id] = element);
+  mods.values.forEach((e) {
+    e.out.forEach((k) {
+      mods[k]?.ins.add(e.id);
+    });
+  });
 }

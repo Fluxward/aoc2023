@@ -50,8 +50,3 @@ void b8(String turns, Map<String, ({String l, String r})> nodes) {
   print(cycles);
   print(cycles.fold<int>(1, (p, e) => lcm(p, e)));
 }
-
-int lcm(int a, int b) {
-  if (a == 0 || b == 0) return 0;
-  return ((a ~/ a.gcd(b)) * b);
-}
