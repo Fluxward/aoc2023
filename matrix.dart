@@ -3,6 +3,9 @@ import 'common.dart';
 class M<T> {
   List<List<T>> data = [];
 
+  int get nr => data.length;
+  int get nc => data.firstOrNull?.length ?? 0;
+
   M(List<List<T>> d) {
     assert(d.length > 0);
     int l = d[0].length;
