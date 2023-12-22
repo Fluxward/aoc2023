@@ -1,5 +1,6 @@
 import 'package:collection/collection.dart';
 
+import 'bitset.dart';
 import 'common.dart';
 import 'matrix.dart';
 
@@ -20,8 +21,19 @@ a21() {
       M(List.generate(plot.nr, (i) => List.generate(plot.nc, (i) => false)));
   cur.data[start.r][start.c] = true;
 
-  for (int i = 0; i < 64; i++) {
+  int c = 0;
+  for (int i = 0; i < 10000; i++) {
     cur = mark(cur, plot);
+
+// 7331
+// 7282
+    int count = cur.data
+        .fold<int>(0, (p, e) => p + e.fold<int>(0, (p, e) => p + (e ? 1 : 0)));
+    if (count == 7331 || count == 7282) {
+      c++;
+      print("$i: ${i % 2 == 0 ? 'even' : 'odd'}: $count");
+      if (c == 2) return;
+    }
   }
 
   print("${cur.nr} ${cur.nc}");
@@ -48,109 +60,80 @@ M<bool> mark(M<bool> cur, M<bool> plot) {
 
 b21() {
   List<String> ls = getLines();
-  BitMatrix plot = BitMatrix(ls.length, ls[0].length);
+  // pad plot with edges
+  BitMatrix plot = BitMatrix(ls.length + 2, ls[0].length + 2);
   P start = P(0, 0);
   ls.forEachIndexed((r, e) => e.split('').forEachIndexed((c, ch) {
-        if (ch == 'S') start = P(r, c);
-        plot[P(r, c)] = ch != '#';
+        if (ch == 'S') start = P(r + 1, c + 1);
+        plot[P(r + 1, c + 1)] = ch != '#';
       }));
+  BitArray t = plot.hSlice(1);
+  BitArray b = plot.hSlice(plot.nr - 2);
+
+  for (int i = 1; i < plot.nc - 1; i++) {
+    plot[P(0, i)] = b[i];
+    plot[P(plot.nr - 1, i)] = t[i];
+  }
+  BitArray r = plot.vSlice(plot.nc - 2);
+  BitArray l = plot.vSlice(1);
+  for (int i = 1; i < plot.nr - 1; i++) {
+    plot[P(i, 0)] = r[i];
+    plot[P(i, plot.nc - 1)] = l[i];
+  }
 
   BitMatrix init = BitMatrix(plot.nr, plot.nc);
   init[start] = true;
 
-  State cur = State(init);
-  allStates[cur.hashCode] = cur;
+  Map<P, BitMatrix> front = {P(0, 0): init};
+  Set<P> steadyStates;
 }
 
-Map<P, State> curIds = {};
-Map<P, State> seenIds = {};
-Map<P, State> seenExpanded = {};
-State expandStateInner(BitMatrix plot, State s, P id) {
-  if (seenExpanded.containsKey(id)) {
-    return seenExpanded[id]!;
-  }
-  // mark this ID as seen
-  seenIds[id] = s;
-  BitMatrix next = BitMatrix(s.m.nr, s.m.nc);
-  State ret = State(next);
-  // add any already expanded neighbours
-  for (dir d in dir.values) {
-    if (seenExpanded[d + id] != null) {
-      ret.next[d] = seenExpanded[d + id]!.hashCode;
-    }
-  }
+int evenStates = 0;
+int oddStates = 0;
+bool evenState = true;
 
-  // output based convolution
-  for (int r = 0; r < s.m.nr; r++) {
-    for (int c = 0; c < s.m.nc; c++) {
-      // skip rock
-      if (!plot[P(r, c)]) continue;
+// steady state outputs:
+// 7331
+// 7282
+int countFrontSteps(Map<P, BitMatrix> front) {
+  // do count here
+  List<P> toRemove = [];
+  int count = 0;
+  for (var me in front.entries) {
+    BitMatrix bm = me.value;
+    int r =
+        bm.numTrue - bm.u.numTrue - bm.d.numTrue - bm.l.numTrue - bm.r.numTrue;
+    if (r == 7331 || r == 7282) {
+      bool isEven = (r == 7282 && evenState) || (r == 7331 && !evenState);
+      isEven ? evenStates++ : oddStates++;
+      toRemove.add(me.key);
+    }
+    count += r;
+  }
+  toRemove.forEach((element) => front.remove(element));
+  evenState != evenState;
+  return count;
+}
+
+Map<BitMatrix, BitMatrix> transitions = {};
+
+BitMatrix markBM(BitMatrix cur, BitMatrix plot) =>
+    transitions.putIfAbsent(cur, () => markBMInner(cur, plot));
+
+BitMatrix markBMInner(BitMatrix cur, BitMatrix plot) {
+  BitMatrix next = BitMatrix(plot.nr, plot.nc);
+  for (int r = 0; r < cur.nr; r++) {
+    for (int c = 0; c < cur.nc; c++) {
+      if (!cur[P(r, c)]) continue;
       P cp = P(r, c);
       for (dir d in dir.values) {
         P dp = cp + d.p;
-        if (!plot.inBounds(dp) || !s.m[dp]) continue;
+        if (!plot.inBounds(dp) || !plot[dp]) continue;
         next[dp] = true;
-        break;
       }
     }
   }
-
-  for (MapEntry m in s.next.entries) {
-    State n = m.value;
-    BitArray a = n.m.side(m.key);
-    switch (m.key) {
-      case dir.u:
-        for (int i = 0; i < a.length; i++) next[P(0, i)] |= a[i];
-      case dir.l:
-        for (int i = 0; i < a.length; i++) next[P(i, 0)] |= a[i];
-      case dir.r:
-        for (int i = 0; i < a.length; i++) next[P(i, plot.nc - 1)] |= a[i];
-      case dir.d:
-        for (int i = 0; i < a.length; i++) next[P(plot.nr - 1, i)] |= a[i];
-    }
-  }
-
-  // see if we need to expand the adjacent states
-  for (dir d in dir.values) {
-    P nid = id + d.p;
-    if (seenIds.containsKey(nid)) continue;
-    bool adj = s.m.side(d)._data.fold<bool>(false, (p, e) => p |= e != 0);
-    if (s.next[d] == null) {
-      if (adj) {
-        // make a new state to explore
-        BitMatrix nm = BitMatrix(s.m.nr, s.m.nc);
-        State ns = State(nm);
-        for (dir nd in dir.values) {
-          P ncid = nd + nid;
-          if (curIds[ncid] != null) {
-            ns.next[nd] = curIds[ncid]!.hashCode;
-          }
-        }
-        ret.next[d] = expandStateMemoised(plot, ns, nid).hashCode;
-      }
-    } else {
-      ret.next[d] =
-          expandStateMemoised(plot, allStates[s.next[d]!]!, nid).hashCode;
-    }
-  }
-
-  return seenExpanded[id] = ret;
-}
-
-Map<int, State> allStates = {};
-Map<State, State> transitions = {};
-State expandStateMemoised(BitMatrix m, State s, P id) {
-  return transitions.putIfAbsent(s, () => expandStateInner(m, s, id));
-}
-
-class State {
-  Map<dir, int> next = {};
-
-  BitMatrix m;
-
-  State(this.m);
-
-  int get hashCode => Object.hashAll([next.entries, m]);
+  return next;
 }
 
 class BitArray {
@@ -183,6 +166,12 @@ class BitArray {
     }
     return l;
   }
+
+  int get numTrue => _data.fold<int>(0, (p, e) => p + e.popcount);
+
+  bool get isEmpty => _data.fold<bool>(true, (p, e) => p && e == 0);
+
+  bool get isNotEmpty => !isEmpty;
 }
 
 class BitMatrix {
@@ -228,4 +217,6 @@ class BitMatrix {
   BitArray hSlice(int r) => _data.slice(nc, nc * r, 1);
 
   bool inBounds(P p) => p.r >= 0 && p.r < nr && p.c >= 0 && p.c < nc;
+
+  int get numTrue => _data.numTrue;
 }

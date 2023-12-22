@@ -1,3 +1,37 @@
+// bit bite counts
+List<int> bBiC = [
+  0, //0000
+  1, //0001
+  1, //0010
+  2, //0011
+  1, //0100
+  2, //0101
+  2, //0110
+  3, //0111
+  1, //1000
+  2, //1001
+  2, //1010
+  3, //1011
+  2, //1100
+  3, //1101
+  3, //1110
+  4, //1111
+];
+
+List<int> bBC = List.generate(256, (i) => bBiC[i & 0xF] + bBiC[(i >> 4) & 0xF]);
+
+extension PC on int {
+  int get popcount =>
+      bBC[this & 0xff] +
+      bBC[(this >> 8) & 0xff] +
+      bBC[(this >> 16) & 0xff] +
+      bBC[(this >> 24) & 0xff] +
+      bBC[(this >> 32) & 0xff] +
+      bBC[(this >> 40) & 0xff] +
+      bBC[(this >> 48) & 0xff] +
+      bBC[(this >> 56) & 0xff];
+}
+
 class BitSet implements Set<int> {
   final List<int> _set;
 
