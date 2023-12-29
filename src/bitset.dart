@@ -1,4 +1,8 @@
 // bit bite counts
+import 'package:collection/collection.dart';
+
+import 'common.dart';
+
 List<int> bBiC = [
   0, //0000
   1, //0001
@@ -312,4 +316,126 @@ class BitSet implements Set<int> {
   }
 
   BitSet.of(BitSet other) : _set = List<int>.of(other._set);
+}
+
+class BitArray {
+  final int length;
+  // dart ints are little endian.
+  List<int> _data;
+
+  BitArray(this.length) : _data = List.filled((length / 64).ceil(), 0);
+
+  bool operator [](int i) => _data[i ~/ 64] & (1 << (i % 64)) != 0;
+
+  void operator []=(int i, bool v) {
+    int bit = i % 64;
+    int e = i ~/ 64;
+
+    _data[e] = (_data[e] & ~(1 << bit)) | ((v ? 1 : 0) << bit);
+  }
+
+  int get hashCode => Object.hashAll([length, _data]);
+
+  bool operator ==(other) =>
+      other is BitArray &&
+      other.length == length &&
+      _data.foldIndexed<bool>(true, (i, p, e) => p && other[i] == e);
+
+  BitArray slice(int len, int start, int inc) {
+    if (inc == 1) return fastSlice(len, start);
+    BitArray l = BitArray(len);
+    for (int i = 0; i < len; i++) {
+      l[i] = this[start + (i * inc)];
+    }
+    return l;
+  }
+
+  BitArray fastSlice(int len, int start) {
+    int bitOffset = start % 64;
+    int chunkStart = start ~/ 64;
+    int nChunks = (len + 63) ~/ 64;
+    BitArray a = BitArray(len);
+    for (int i = 0; i < nChunks; i++) {
+      // copy higher bits from original to lower bits of new
+      a._data[i] = (_data[chunkStart + i] >> bitOffset);
+
+      // copy lower bits of the next chunk to the high bits of new
+      // skip step if offset is 0 or at last chunk
+      if (bitOffset != 0 && (i < nChunks - 1))
+        a._data[i] |= _data[chunkStart + i + 1] << (64 - bitOffset);
+    }
+    return a;
+  }
+
+  int get numTrue => _data.fold<int>(0, (p, e) => p + e.popcount);
+
+  bool get isEmpty => _data.fold<bool>(true, (p, e) => p && e == 0);
+
+  bool get isNotEmpty => !isEmpty;
+}
+
+class BitMatrix {
+  final int nr;
+  final int nc;
+
+  final BitArray _data;
+  final BitArray _dataT;
+
+  BitMatrix(this.nr, this.nc)
+      : _data = BitArray(nr * nc),
+        _dataT = BitArray(nr * nc);
+
+  BitMatrix subMatrix(P start, P end) {
+    if (start.r >= end.r ||
+        start.c >= end.c ||
+        !inBounds(start) ||
+        !inBounds(end - P(1, 1))) throw Error();
+
+    int nRows = end.r - start.r;
+    int nCols = end.c - start.c;
+
+    BitMatrix sub = BitMatrix(nRows, nCols);
+
+    for (int i = 0; i < nRows; i++) {
+      for (int j = 0; j < nCols; j++) {
+        sub[P(i, j)] = this[start + P(i, j)];
+      }
+    }
+    return sub;
+  }
+
+  bool operator [](P p) => _data[p.r * nc + p.c];
+
+  void operator []=(P p, bool v) {
+    _data[p.r * nc + p.c] = (v);
+    _dataT[p.c * nr + p.r] = (v);
+  }
+
+  int get hashCode => Object.hashAll([nr, nc, _data]);
+
+  bool operator ==(other) =>
+      other is BitMatrix &&
+      other.nr == nr &&
+      other.nc == nc &&
+      other._data == _data;
+
+  BitArray side(dir d) => d == dir.d
+      ? this.d
+      : d == dir.u
+          ? this.u
+          : d == dir.l
+              ? this.l
+              : this.r;
+
+  BitArray get l => vSlice(0);
+  BitArray get r => vSlice(nc - 1);
+  BitArray get u => hSlice(0);
+  BitArray get d => hSlice(nr - 1);
+
+  BitArray vSlice(int c) => _dataT.slice(nr, nr * c, 1);
+  BitArray hSlice(int r) => _data.slice(nc, nc * r, 1);
+
+  bool inBounds(P p) => p.r >= 0 && p.r < nr && p.c >= 0 && p.c < nc;
+
+  int get numTrue => _data.numTrue;
 }
