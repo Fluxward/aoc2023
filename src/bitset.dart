@@ -3,7 +3,7 @@ import 'package:collection/collection.dart';
 
 import 'common.dart';
 
-List<int> bBiC = [
+List<int> bBiC = List.unmodifiable([
   0, //0000
   1, //0001
   1, //0010
@@ -20,9 +20,13 @@ List<int> bBiC = [
   3, //1101
   3, //1110
   4, //1111
-];
+]);
 
-List<int> bBC = List.generate(256, (i) => bBiC[i & 0xF] + bBiC[(i >> 4) & 0xF]);
+List<int> lowMasks =
+    List.unmodifiable(List.generate(65, (i) => (1 << i) - 1, growable: false));
+
+List<int> bBC = List.unmodifiable(
+    List.generate(256, (i) => bBiC[i & 0xF] + bBiC[(i >> 4) & 0xF]));
 
 extension PC on int {
   int get popcount =>
@@ -34,6 +38,15 @@ extension PC on int {
       bBC[(this >> 40) & 0xff] +
       bBC[(this >> 48) & 0xff] +
       bBC[(this >> 56) & 0xff];
+
+  String get toBString {
+    StringBuffer sb = StringBuffer();
+
+    for (int i = 0; i < 64; i++) {
+      sb.write((this >> (63 - i)) & 1 == 1 ? '1' : '0');
+    }
+    return sb.toString();
+  }
 }
 
 class BitSet implements Set<int> {
@@ -321,25 +334,25 @@ class BitSet implements Set<int> {
 class BitArray {
   final int length;
   // dart ints are little endian.
-  List<int> _data;
+  List<int> data;
 
-  BitArray(this.length) : _data = List.filled((length / 64).ceil(), 0);
+  BitArray(this.length) : data = List.filled((length + 63) ~/ 64, 0);
 
-  bool operator [](int i) => _data[i ~/ 64] & (1 << (i % 64)) != 0;
+  bool operator [](int i) => data[i ~/ 64] & (1 << (i % 64)) != 0;
 
   void operator []=(int i, bool v) {
     int bit = i % 64;
     int e = i ~/ 64;
 
-    _data[e] = (_data[e] & ~(1 << bit)) | ((v ? 1 : 0) << bit);
+    data[e] = (data[e] & ~(1 << bit)) | ((v ? 1 : 0) << bit);
   }
 
-  int get hashCode => Object.hashAll([length, _data]);
+  int get hashCode => Object.hashAll([length, data]);
 
   bool operator ==(other) =>
       other is BitArray &&
       other.length == length &&
-      _data.foldIndexed<bool>(true, (i, p, e) => p && other[i] == e);
+      data.foldIndexed<bool>(true, (i, p, e) => p && other[i] == e);
 
   BitArray slice(int len, int start, int inc) {
     if (inc == 1) return fastSlice(len, start);
@@ -351,27 +364,128 @@ class BitArray {
   }
 
   BitArray fastSlice(int len, int start) {
-    int bitOffset = start % 64;
-    int chunkStart = start ~/ 64;
+    BitArray a = BitArray(len);
+    fastCopyInto(a, len, start);
+    return a;
+  }
+
+  /// copies len bits from this array starting from start into dest starting from the tcs'th int
+  void fastCopyInto(BitArray dest, int len, int start, [int tcs = 0]) {
+    int i = 0;
+
+    int sc = start ~/ 64;
+    int hiBits = start % 64;
+    int loBits = 64 - hiBits;
+
+    int total = 0;
+
+    int lo;
+    int hi;
+    for (; total < len; i++) {
+      int rem = len - total;
+      int og = dest.data[tcs + i];
+      if (rem <= loBits) {
+        lo = (data[sc + i] >> hiBits) & lowMasks[rem];
+        hi = og & ~lowMasks[rem];
+        total = len;
+      } else {
+        lo = (data[sc + i] >> hiBits) & lowMasks[loBits];
+        total += loBits;
+        rem = len - total;
+        if (rem <= hiBits) {
+          hi = (data[sc + i + 1] & lowMasks[rem]) << (loBits);
+          hi |= og & ~lowMasks[rem + loBits];
+        } else {
+          hi = (data[sc + i + 1] & lowMasks[hiBits]) << (loBits);
+        }
+
+        total += hiBits;
+      }
+      dest.data[tcs + i] = lo | hi;
+    }
+  }
+
+  void fastCopyWithOffset(BitArray to, int len, int fS, int tS) {
+    if (tS % 64 == 0) {
+      fastCopyInto(to, len, fS, tS ~/ 64);
+      return;
+    }
+
+    // naive imp
+    //for (int i = 0; i < len; i++) to[tS + i] = this[fS + i];
+
+    // intwise imp
+    /*
     int nChunks = (len + 63) ~/ 64;
+    int lenOffset = len % 64;
+    int i;
+    for (i = 0; i < nChunks - 1; i++) {
+      for (int b = 0; b < 64; b++) {
+        to[tS + (i * 64) + b] = this[fS + (i * 64) + b];
+      }
+    }
+    for (int b = 0; b < (lenOffset == 0 ? 64 : lenOffset); b++) {
+      to[tS + (i * 64) + b] = this[fS + (i * 64) + b];
+    }
+    */
+
+    int tso = tS % 64;
+    int fso = fS % 64;
+    int tsc = tS ~/ 64;
+    int fsc = fS ~/ 64;
+    // easy case.
+    if (tso == fso) {
+      // first chunk is segmented. keep the lower bits of to, get the high bits of from
+      to.data[tsc] =
+          (to.data[tsc] & lowMasks[tso]) | (this.data[fsc] & ~lowMasks[tso]);
+
+      // copy the rest with the other methods.
+      fastCopyInto(to, len - 64 + tso, fS + 64 - tso, tsc + 1);
+      return;
+    } else if (tso < fso) {
+      // want to copy XXx to YYY
+      // from = [XX  ][   x][    ]
+      // to =   [YYY ][    ][    ]
+      int fs0 = fso - tso; // 16
+      // first chunk is 64 - tso long.
+      // want a) the highest (64 - fso) bits of the first from chunk
+      // and  b) the lowest (64 - tso - (64 - fso)) = fso - tso bits of the second from chunk
+      int t0 = (to.data[tsc] & lowMasks[tso]) |
+          (((this.data[fsc] & ~lowMasks[fso])) >> fs0) |
+          ((this.data[fsc + 1] & lowMasks[fs0]) << (64 - fs0));
+      to.data[tsc] = t0;
+
+      fastCopyInto(to, len - (64 - tso), fS + (64 - tso), 1 + (tS - tso) ~/ 64);
+    } else {
+      // want to copy XXx to YYY, preserve ZZ
+      // from = [XXX ][    ][    ]
+      // to =   [YYZZ][   y][    ]
+      // first chunk is 64 - tso long.
+      int t0 = (to.data[tsc] & lowMasks[tso]) |
+          (this.data[fsc] << (tso - fso) & ~lowMasks[tso]);
+      to.data[tsc] = t0;
+
+      fastCopyInto(to, len - (64 - tso), fS + (64 - tso), 1 + (tS - tso) ~/ 64);
+    }
+  }
+
+  BitArray copyFrom(int len, int nChunks, int startChunk) {
     BitArray a = BitArray(len);
     for (int i = 0; i < nChunks; i++) {
-      // copy higher bits from original to lower bits of new
-      a._data[i] = (_data[chunkStart + i] >> bitOffset);
-
-      // copy lower bits of the next chunk to the high bits of new
-      // skip step if offset is 0 or at last chunk
-      if (bitOffset != 0 && (i < nChunks - 1))
-        a._data[i] |= _data[chunkStart + i + 1] << (64 - bitOffset);
+      a.data[i] = this.data[i + startChunk];
     }
     return a;
   }
 
-  int get numTrue => _data.fold<int>(0, (p, e) => p + e.popcount);
+  int get numTrue => data.fold<int>(0, (p, e) => p + e.popcount);
 
-  bool get isEmpty => _data.fold<bool>(true, (p, e) => p && e == 0);
+  bool get isEmpty => data.fold<bool>(true, (p, e) => p && e == 0);
 
   bool get isNotEmpty => !isEmpty;
+
+  String toString() {
+    return numTrue.toString();
+  }
 }
 
 class BitMatrix {
@@ -380,6 +494,8 @@ class BitMatrix {
 
   final BitArray _data;
   final BitArray _dataT;
+
+  bool _lazyTransposed = false;
 
   BitMatrix(this.nr, this.nc)
       : _data = BitArray(nr * nc),
@@ -402,6 +518,21 @@ class BitMatrix {
       }
     }
     return sub;
+  }
+
+  /// start is inclusive, end is exclusive
+  BitMatrix subRows(int start, int end) {
+    int len = (end - start) * nc;
+    BitArray d = _data.slice(len, start * nc, 1);
+    BitMatrix bm = BitMatrix(end - start, nc);
+    bm._lazyTransposed = false;
+    d.fastCopyInto(bm._data, len, 0);
+    return bm;
+  }
+
+  void copyRowFromArray(int r, BitArray a) {
+    a.fastCopyWithOffset(_data, nc, 0, r * nc);
+    _lazyTransposed = false;
   }
 
   bool operator [](P p) => _data[p.r * nc + p.c];
@@ -432,10 +563,34 @@ class BitMatrix {
   BitArray get u => hSlice(0);
   BitArray get d => hSlice(nr - 1);
 
-  BitArray vSlice(int c) => _dataT.slice(nr, nr * c, 1);
+  BitArray vSlice(int c) {
+    doTranspose();
+    return _dataT.slice(nr, nr * c, 1);
+  }
+
   BitArray hSlice(int r) => _data.slice(nc, nc * r, 1);
 
   bool inBounds(P p) => p.r >= 0 && p.r < nr && p.c >= 0 && p.c < nc;
 
   int get numTrue => _data.numTrue;
+
+  void doTranspose() {
+    if (_lazyTransposed == true) return;
+    for (int r = 0; r < nr; r++) {
+      for (int c = 0; c < nc; c++) {
+        _dataT[c * nr + r] = _data[r * nc + c];
+      }
+    }
+  }
+
+  String toString() {
+    StringBuffer sb = StringBuffer();
+    for (int i = 0; i < nr; i++) {
+      for (int j = 0; j < nc; j++) {
+        sb.write(this[P(i, j)] ? 'X' : '.');
+      }
+      sb.write('\n');
+    }
+    return sb.toString();
+  }
 }

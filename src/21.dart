@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:collection/collection.dart';
 
 import 'bitset.dart';
@@ -10,6 +12,7 @@ d21(bool s) {
 
 b21() {
   List<String> ls = getLines();
+  List<int> counts = [];
   // pad plot with edges
   BitMatrix plot = BitMatrix(ls.length + 2, ls[0].length + 2);
   P start = P(0, 0);
@@ -37,7 +40,7 @@ b21() {
   Map<P, BitMatrix> front = {P(0, 0): init};
   Map<P, bool> steadyStates = {};
 
-  const int loops = 1000000;
+  const int loops = 300;
   int count = 0;
   Stopwatch sw = Stopwatch()..start();
   List<int> ts = [0, 0, 0];
@@ -59,13 +62,25 @@ b21() {
     ts[2] = ((ts[2] * i) + sw.elapsedMicroseconds - s) ~/ (i + 1);
 
     _7282parity != _7282parity;
-    if (i % 100 == 0) {
-      print(
-          "$i, $count, $hits, ${front.length}, ${transitions.length}, ${steadyStates.length}");
-      print("ambm: $averageMarkBm t: $ts");
+    counts.add(count);
+    if (_7282m != null && _7331m != null) {
+      print("Reference matrices found. $i");
+      return;
     }
   }
-  print("$count, $hits");
+
+  print("hello there");
+  print(pre(counts));
+  print(counts.length);
+  print(depth);
+}
+
+int depth = 0;
+int pre(List<int> h) {
+  depth++;
+  return h.every((e) => e == 0)
+      ? 0
+      : (pre(List.generate(h.length - 1, (i) => h[i + 1] - h[i]))) + h.last;
 }
 
 // number of steady states that have locs equal to _x when _xparity is true
@@ -79,6 +94,10 @@ BitMatrix? _7331m;
 // steady state outputs:
 // 7331
 // 7282
+Set<BitArray> us = {};
+Set<BitArray> ds = {};
+Set<BitArray> rs = {};
+Set<BitArray> ls = {};
 int countFrontAndExpand(Map<P, BitMatrix> front, Map<P, bool> steadyStates) {
   List<P> toRemove = [];
   int count = 0;
@@ -86,7 +105,9 @@ int countFrontAndExpand(Map<P, BitMatrix> front, Map<P, bool> steadyStates) {
     BitMatrix bm = me.value;
     int r =
         bm.numTrue - bm.u.numTrue - bm.d.numTrue - bm.l.numTrue - bm.r.numTrue;
-    if (r == 7331 || r == 7282) {
+
+    if (r >= 7282) {
+      print(r);
       bool is7282 = (r == 7282 && _7282parity) || (r == 7331 && !_7282parity);
       is7282 ? _7282++ : _7331++;
       toRemove.add(me.key);
@@ -95,11 +116,13 @@ int countFrontAndExpand(Map<P, BitMatrix> front, Map<P, bool> steadyStates) {
       if (_7282m == null && r == 7282) {
         _7282m =
             me.value.subMatrix(P(1, 1), P(me.value.nr - 1, me.value.nc - 1));
+        print("hi");
       }
 
       if (_7331m == null && r == 7331) {
         _7331m =
             me.value.subMatrix(P(1, 1), P(me.value.nr - 1, me.value.nc - 1));
+        print("hi");
       }
       // don't include this in the count.
       continue;
@@ -123,16 +146,27 @@ int countFrontAndExpand(Map<P, BitMatrix> front, Map<P, bool> steadyStates) {
         continue;
       }
 
+      BitArray s;
+      bool seen = false;
       switch (d) {
         case dir.u:
-          if (b.hSlice(1).slice(b.nc - 2, 1, 1).isEmpty) continue;
+          s = b.hSlice(1).slice(b.nc - 2, 1, 1);
+          seen = !us.add(s);
         case dir.d:
-          if (b.hSlice(b.nr - 2).slice(b.nc - 2, 1, 1).isEmpty) continue;
+          s = b.hSlice(b.nr - 2).slice(b.nc - 2, 1, 1);
+          seen = !ds.add(s);
         case dir.l:
-          if (b.vSlice(1).slice(b.nr - 2, 1, 1).isEmpty) continue;
+          s = b.vSlice(1).slice(b.nr - 2, 1, 1);
+          seen = !ls.add(s);
         case dir.r:
-          if (b.vSlice(b.nr - 2).slice(b.nr - 2, 1, 1).isEmpty) continue;
+          s = b.vSlice(b.nr - 2).slice(b.nr - 2, 1, 1);
+          seen = !rs.add(s);
       }
+
+      if (seen) {
+        print("I have seen this");
+      }
+      if (s.isEmpty) continue;
 
       BitMatrix ne = front.putIfAbsent(n, () => BitMatrix(b.nr, b.nc));
 
@@ -170,6 +204,7 @@ void copyRow(BitMatrix f, BitMatrix t, int fr, int tr) {
   }
 }
 
+Map<P, bool> parities = {};
 int countSteadyStates() => _7282parity
     ? (_7282 * 7282) + (_7331 * 7331)
     : (_7282 * 7331) + (_7331 * 7282);
@@ -178,25 +213,42 @@ Map<BitMatrix, BitMatrix> transitions = {};
 int hits = 0;
 BitMatrix markBM(BitMatrix cur, BitMatrix plot) {
   hits++;
-  return transitions.putIfAbsent(cur, () => markBMInner(cur, plot));
+  return markBMInner(cur, plot);
+  //return transitions.putIfAbsent(cur, () => markBMInner(cur, plot));
 }
 
+int ct = 0;
 BitMatrix markBMInner(BitMatrix cur, BitMatrix plot) {
   hits--;
   BitMatrix next = BitMatrix(plot.nr, plot.nc);
-  for (int r = 0; r < cur.nr; r++) {
-    for (int c = 0; c < cur.nc; c++) {
-      if (!cur[P(r, c)]) continue;
-      P cp = P(r, c);
-      for (dir d in dir.values) {
-        P dp = cp + d.p;
-        if (plot.inBounds(dp) && plot[dp])
-          next[dp] = plot.inBounds(dp) && plot[dp];
+  for (int r = 1; r < cur.nr - 1; r++) {
+    ct++;
+    BitArray nA = getNextRowInner(r, cur, plot);
+    /*innerTransition.putIfAbsent(
+        (r: r, rows: cur.subRows(start, end)),
+        () => getNextRowInner(r, cur, plot));*/
+    next.copyRowFromArray(r, nA);
+  }
+  return next;
+}
+
+BitArray getNextRowInner(int r, BitMatrix cur, BitMatrix plot) {
+  ct--;
+  BitArray next = BitArray(cur.nc);
+  for (int c = 1; c < cur.nc - 1; c++) {
+    P cp = P(r, c);
+    if (!plot[cp]) continue;
+    for (dir d in dir.values) {
+      if (cur[cp + d.p]) {
+        next[c] = true;
+        break;
       }
     }
   }
   return next;
 }
+
+Map<({int r, BitMatrix rows}), BitArray> innerTransition = {};
 
 a21() {
   P start = P(0, 0);
