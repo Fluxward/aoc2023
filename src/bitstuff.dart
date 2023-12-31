@@ -40,7 +40,7 @@ int window(int a, int b, int offset) {
   int hb = offset;
   int lb = 64 - hb;
 
-  return (a >> hb) & lowMasks[lb] | ((b & lowMasks[hb]) << lb);
+  return (a >> hb) & lowMasks[lb] | (b << lb) & ~lowMasks[lb];
 }
 
 class BitArray {
