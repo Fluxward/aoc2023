@@ -299,3 +299,111 @@ M<bool> mark(M<bool> cur, M<bool> plot) {
   }
   return next;
 }
+
+class BitMatrix {
+  final int nr;
+  final int nc;
+
+  final BitArray _data;
+  final BitArray _dataT;
+
+  bool _transposeReady = false;
+
+  BitMatrix(this.nr, this.nc)
+      : _data = BitArray(nr * nc),
+        _dataT = BitArray(nr * nc);
+
+  BitMatrix subMatrix(P start, P end) {
+    if (start.r >= end.r ||
+        start.c >= end.c ||
+        !inBounds(start) ||
+        !inBounds(end - P(1, 1))) throw Error();
+
+    int nRows = end.r - start.r;
+    int nCols = end.c - start.c;
+
+    if (nCols == nc) return subRows(start.r, end.r);
+
+    BitMatrix sub = BitMatrix(nRows, nCols);
+    sub._transposeReady = false;
+
+    for (int i = 0; i < nRows; i++) {
+      _data.fastCopyWithOffset(
+          sub._data, nCols, nc * (start.r + i) + start.c, i * nRows);
+    }
+    return sub;
+  }
+
+  /// start is inclusive, end is exclusive
+  BitMatrix subRows(int start, int end) {
+    int len = (end - start) * nc;
+    BitMatrix bm = BitMatrix(end - start, nc);
+    _data.fastCopyInto(bm._data, len, start * nc);
+    bm._transposeReady = false;
+    return bm;
+  }
+
+  void copyRowFromArray(int r, BitArray a) {
+    a.fastCopyWithOffset(_data, nc, 0, r * nc);
+    _transposeReady = false;
+  }
+
+  bool operator [](P p) => _data[p.r * nc + p.c];
+
+  void operator []=(P p, bool v) {
+    _data[p.r * nc + p.c] = (v);
+    _dataT[p.c * nr + p.r] = (v);
+  }
+
+  int get hashCode => Object.hashAll([nr, nc, _data]);
+
+  bool operator ==(other) =>
+      other is BitMatrix &&
+      other.nr == nr &&
+      other.nc == nc &&
+      other._data == _data;
+
+  BitArray side(dir d) => d == dir.d
+      ? this.d
+      : d == dir.u
+          ? this.u
+          : d == dir.l
+              ? this.l
+              : this.r;
+
+  BitArray get l => vSlice(0);
+  BitArray get r => vSlice(nc - 1);
+  BitArray get u => hSlice(0);
+  BitArray get d => hSlice(nr - 1);
+
+  BitArray vSlice(int c) {
+    doTranspose();
+    return _dataT.slice(nr, nr * c, 1);
+  }
+
+  BitArray hSlice(int r) => _data.slice(nc, nc * r, 1);
+
+  bool inBounds(P p) => p.r >= 0 && p.r < nr && p.c >= 0 && p.c < nc;
+
+  int get numTrue => _data.numTrue;
+
+  void doTranspose() {
+    if (_transposeReady == true) return;
+    for (int r = 0; r < nr; r++) {
+      for (int c = 0; c < nc; c++) {
+        _dataT[c * nr + r] = _data[r * nc + c];
+      }
+    }
+  }
+
+  String toString() {
+    StringBuffer sb = StringBuffer();
+    for (int i = 0; i < nr; i++) {
+      for (int j = 0; j < nc; j++) {
+        sb.write(this[P(i, j)] ? 'X' : '.');
+      }
+      sb.write('\n');
+    }
+    return sb.toString();
+  }
+}
