@@ -35,6 +35,14 @@ extension BitOperations on int {
   }
 }
 
+int window(int a, int b, int offset) {
+  if (offset < 0 || offset > 63) throw Error();
+  int hb = offset;
+  int lb = 64 - hb;
+
+  return (a >> hb) & lowMasks[lb] | ((b & lowMasks[hb]) << lb);
+}
+
 class BitArray {
   final int length;
   List<int> data;
@@ -75,11 +83,9 @@ class BitArray {
   int getIntAt(int bit) {
     if (bit < 0) return 0;
     int c = bit ~/ 64;
-    int hb = bit % 64;
-    int lb = 64 - hb;
 
-    return ((c < data.length) ? (data[c] >> hb) & lowMasks[lb] : 0) |
-        ((c + 1 < data.length) ? (data[c + 1] & lowMasks[hb]) << lb : 0);
+    return window((c < data.length) ? data[c] : 0,
+        (c + 1 < data.length) ? data[c + 1] : 0, bit % 64);
   }
 
   /// copies len bits from this array starting from start into dest starting from the tcs'th int
@@ -121,6 +127,7 @@ class BitArray {
     int fso = fS % 64;
     int tsc = tS ~/ 64;
     int fsc = fS ~/ 64;
+    // Copy first chunk
     if (tso < fso) {
       // want to copy XXx to YYY
       // from = [XX  ][   x][    ]
@@ -133,8 +140,6 @@ class BitArray {
           (((this.data[fsc] & ~lowMasks[fso])) >> fs0) |
           ((this.data[fsc + 1] & lowMasks[fs0]) << (64 - fs0));
       to.data[tsc] = t0;
-
-      fastCopyInto(to, len - (64 - tso), fS + (64 - tso), 1 + (tS - tso) ~/ 64);
     } else {
       // want to copy XXx to YYY, preserve ZZ
       // from = [XXX ][    ][    ]
@@ -143,9 +148,8 @@ class BitArray {
       int t0 = (to.data[tsc] & lowMasks[tso]) |
           (this.data[fsc] << (tso - fso) & ~lowMasks[tso]);
       to.data[tsc] = t0;
-
-      fastCopyInto(to, len - (64 - tso), fS + (64 - tso), 1 + (tS - tso) ~/ 64);
     }
+    fastCopyInto(to, len - (64 - tso), fS + (64 - tso), 1 + (tS - tso) ~/ 64);
   }
 
   BitArray copyFrom(int len, int nChunks, int startChunk) {
@@ -193,7 +197,7 @@ class BitMatrix {
   final BitArray _data;
   final BitArray _dataT;
 
-  bool _lazyTransposed = false;
+  bool _transposeReady = false;
 
   BitMatrix(this.nr, this.nc)
       : _data = BitArray(nr * nc),
@@ -208,12 +212,14 @@ class BitMatrix {
     int nRows = end.r - start.r;
     int nCols = end.c - start.c;
 
+    if (nCols == nc) return subRows(start.r, end.r);
+
     BitMatrix sub = BitMatrix(nRows, nCols);
+    sub._transposeReady = false;
 
     for (int i = 0; i < nRows; i++) {
-      for (int j = 0; j < nCols; j++) {
-        sub[P(i, j)] = this[start + P(i, j)];
-      }
+      _data.fastCopyWithOffset(
+          sub._data, nCols, nc * (start.r + i) + start.c, i * nRows);
     }
     return sub;
   }
@@ -221,16 +227,15 @@ class BitMatrix {
   /// start is inclusive, end is exclusive
   BitMatrix subRows(int start, int end) {
     int len = (end - start) * nc;
-    BitArray d = _data.slice(len, start * nc, 1);
     BitMatrix bm = BitMatrix(end - start, nc);
-    bm._lazyTransposed = false;
-    d.fastCopyInto(bm._data, len, 0);
+    _data.fastCopyInto(bm._data, len, start * nc);
+    bm._transposeReady = false;
     return bm;
   }
 
   void copyRowFromArray(int r, BitArray a) {
     a.fastCopyWithOffset(_data, nc, 0, r * nc);
-    _lazyTransposed = false;
+    _transposeReady = false;
   }
 
   bool operator [](P p) => _data[p.r * nc + p.c];
@@ -273,7 +278,7 @@ class BitMatrix {
   int get numTrue => _data.numTrue;
 
   void doTranspose() {
-    if (_lazyTransposed == true) return;
+    if (_transposeReady == true) return;
     for (int r = 0; r < nr; r++) {
       for (int c = 0; c < nc; c++) {
         _dataT[c * nr + r] = _data[r * nc + c];
