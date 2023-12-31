@@ -3,7 +3,6 @@ import 'dart:math';
 
 import 'package:collection/collection.dart';
 
-import '20.dart';
 import 'common.dart';
 
 final List<int> bBiC =
@@ -100,7 +99,7 @@ class BitArray {
   /// copies len bits from this array starting from start into dest starting from the tcs'th int
   void fastCopyInto(BitArray dest, int len, int start, [int tcs = 0]) {
     if (len < 0) throw Error();
-    //if (len == 0) return;
+    if (len == 0) return;
     if (len < 64) {
       copySubInt(dest, len, start, tcs * 64);
       return;
@@ -147,8 +146,8 @@ class BitArray {
 
     ({int lo, int hi}) s = split(source, lb);
 
-    to.data[ch] = replaceBits(to.data[ch], s.lo,
-        len >= lb ? lowMasks[lb] << hb : lowMasks[len] << hb);
+    to.data[ch] = replaceBits(
+        to.data[ch], s.lo, (len >= lb ? lowMasks[lb] : lowMasks[len]) << hb);
 
     if (ch + 1 > to.data.length || len <= lb) return;
 

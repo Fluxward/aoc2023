@@ -9,6 +9,7 @@ void main() {
   testBitArrayFastSlice();
   testReplaceBits();
   testCopySubInt();
+  testSplit();
   int pass = 0;
   int n = 64;
   for (int i = 0; i < n; i++) {
@@ -18,6 +19,13 @@ void main() {
   }
   print("$pass passed");
   testFastCopyWithOffset();
+}
+
+void testSplit() {
+  int a = 0xababababefefefef;
+  var s = split(a, 24);
+  assert(s.lo == (0xefefef) << 40);
+  assert(s.hi == 0xababababef);
 }
 
 void testReplaceBits() {
