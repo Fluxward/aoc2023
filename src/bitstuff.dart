@@ -135,7 +135,7 @@ class BitArray {
   }
 
   void copySubInt(BitArray to, int len, int fS, int tS) {
-    int source = getIntAt(fS) | lowMasks[len];
+    int source = getIntAt(fS) & lowMasks[len];
     int hb = tS % 64;
     int ch = tS ~/ 64;
     if (hb == 0) {
