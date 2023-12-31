@@ -7,6 +7,8 @@ int seed = 12;
 Random r = Random(seed);
 void main() {
   testBitArrayFastSlice();
+  testReplaceBits();
+  testCopySubInt();
   int pass = 0;
   int n = 64;
   for (int i = 0; i < n; i++) {
@@ -16,6 +18,25 @@ void main() {
   }
   print("$pass passed");
   testFastCopyWithOffset();
+}
+
+void testReplaceBits() {
+  int mask = 0xff00;
+  int a = 0xababab;
+  int b = 0xcc00;
+
+  assert(replaceBits(a, b, mask) == 0xabccab);
+}
+
+void testCopySubInt() {
+  BitArray a = BitArray(4 * 64);
+  BitArray b = BitArray(64);
+
+  b.data[0] = 0x8f00;
+
+  b.copySubInt(a, 4, 8, 4);
+
+  assert(a.data[0] == 0xf0);
 }
 
 void testBitArrayFastSlice() {

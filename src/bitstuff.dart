@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:collection/collection.dart';
 
+import '20.dart';
 import 'common.dart';
 
 final List<int> bBiC =
@@ -42,6 +43,14 @@ int window(int a, int b, int offset) {
 
   return (a >> hb) & lowMasks[lb] | (b << lb) & ~lowMasks[lb];
 }
+
+({int lo, int hi}) split(int a, int nLowBits) {
+  int hb = 64 - nLowBits;
+
+  return (lo: (a << hb) & ~lowMasks[hb], hi: (a >> nLowBits) & lowMasks[hb]);
+}
+
+int replaceBits(int d, int s, int m) => (d & ~m) | s & m;
 
 class BitArray {
   final int length;
@@ -90,66 +99,60 @@ class BitArray {
 
   /// copies len bits from this array starting from start into dest starting from the tcs'th int
   void fastCopyInto(BitArray dest, int len, int start, [int tcs = 0]) {
-    int i = 0;
-
-    int hiBits = start % 64;
-    int loBits = 64 - hiBits;
-
-    int total = 0;
-
-    int next;
-    for (; total < len; i++) {
-      int rem = len - total;
-      int og = dest.data[tcs + i];
-      next = getIntAt(start + total);
-      if (rem <= loBits) {
-        next = (next & lowMasks[rem]) | (og & ~lowMasks[rem]);
-        total = len;
-      } else {
-        rem = len - total - loBits;
-        if (rem <= hiBits) {
-          next &= lowMasks[rem + loBits];
-          next |= (og & ~lowMasks[rem + loBits]);
-        }
-        total += 64;
-      }
-      dest.data[tcs + i] = next;
+    if (len < 0) throw Error();
+    //if (len == 0) return;
+    if (len < 64) {
+      copySubInt(dest, len, start, tcs * 64);
+      return;
     }
+
+    dest.data[tcs] = getIntAt(start);
+    fastCopyInto(dest, len - 64, start + 64, tcs + 1);
   }
 
   void fastCopyWithOffset(BitArray to, int len, int fS, int tS) {
+    if (len < 64) {
+      copySubInt(to, len, fS, tS);
+      return;
+    }
+
     if (tS % 64 == 0) {
       fastCopyInto(to, len, fS, tS ~/ 64);
       return;
     }
 
-    int tso = tS % 64;
-    int fso = fS % 64;
-    int tsc = tS ~/ 64;
-    int fsc = fS ~/ 64;
-    // Copy first chunk
-    if (tso < fso) {
-      // want to copy XXx to YYY
-      // from = [XX  ][   x][    ]
-      // to =   [YYY ][    ][    ]
-      int fs0 = fso - tso; // 16
-      // first chunk is 64 - tso long.
-      // want a) the highest (64 - fso) bits of the first from chunk
-      // and  b) the lowest (64 - tso - (64 - fso)) = fso - tso bits of the second from chunk
-      int t0 = (to.data[tsc] & lowMasks[tso]) |
-          (((this.data[fsc] & ~lowMasks[fso])) >> fs0) |
-          ((this.data[fsc + 1] & lowMasks[fs0]) << (64 - fs0));
-      to.data[tsc] = t0;
-    } else {
-      // want to copy XXx to YYY, preserve ZZ
-      // from = [XXX ][    ][    ]
-      // to =   [YYZZ][   y][    ]
-      // first chunk is 64 - tso long.
-      int t0 = (to.data[tsc] & lowMasks[tso]) |
-          (this.data[fsc] << (tso - fso) & ~lowMasks[tso]);
-      to.data[tsc] = t0;
+    int firstSourceChunk = getIntAt(fS);
+
+    int loBits = tS % 64;
+    int hiBits = 64 - loBits;
+    int toChunks = tS ~/ 64;
+
+    ({int lo, int hi}) s = split(firstSourceChunk, hiBits);
+
+    to.data[toChunks] =
+        replaceBits(to.data[toChunks], s.lo, lowMasks[hiBits] << loBits);
+
+    fastCopyInto(to, len - hiBits, fS + hiBits, 1 + (tS - loBits) ~/ 64);
+  }
+
+  void copySubInt(BitArray to, int len, int fS, int tS) {
+    int source = getIntAt(fS) | lowMasks[len];
+    int hb = tS % 64;
+    int ch = tS ~/ 64;
+    if (hb == 0) {
+      to.data[ch] = replaceBits(to.data[ch], source, lowMasks[len]);
+      return;
     }
-    fastCopyInto(to, len - (64 - tso), fS + (64 - tso), 1 + (tS - tso) ~/ 64);
+    int lb = 64 - hb;
+
+    ({int lo, int hi}) s = split(source, lb);
+
+    to.data[ch] = replaceBits(to.data[ch], s.lo,
+        len >= lb ? lowMasks[lb] << hb : lowMasks[len] << hb);
+
+    if (ch + 1 > to.data.length || len <= lb) return;
+
+    to.data[ch + 1] = replaceBits(to.data[ch + 1], s.hi, lowMasks[len - lb]);
   }
 
   BitArray copyFrom(int len, int nChunks, int startChunk) {
