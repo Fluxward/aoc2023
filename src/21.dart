@@ -2,7 +2,7 @@ import 'dart:math';
 
 import 'package:collection/collection.dart';
 
-import 'bitset.dart';
+import 'bitstuff.dart';
 import 'common.dart';
 import 'matrix.dart';
 

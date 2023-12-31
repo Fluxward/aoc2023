@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import '../src/bitset.dart';
+import '../src/bitstuff.dart';
 
 Stopwatch seedWatch = Stopwatch()..start();
 int seed = 12;
