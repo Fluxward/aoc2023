@@ -42,13 +42,13 @@ void testCopySubInt() {
 
   b.data[0] = 0x8f01;
 
-  b.copySubInt(a, 4, 8, 4);
+  b.copySubIntInto(a, 4, 8, 4);
 
   assert(a.data[0] == 0xf0);
 
   a.data[1] = -1;
 
-  b.copySubInt(a, 16, 0, 56);
+  b.copySubIntInto(a, 16, 0, 56);
 
   assert(a.data[0] == 0x01000000000000f0);
   assert(a.data[1] == 0xffffffffffffff8f);

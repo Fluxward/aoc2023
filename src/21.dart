@@ -2,12 +2,13 @@ import 'dart:math';
 
 import 'package:collection/collection.dart';
 
+import '21v2.dart';
 import 'bitstuff.dart';
 import 'common.dart';
 import 'matrix.dart';
 
 d21(bool s) {
-  s ? b21() : a21();
+  s ? do21b() : a21();
 }
 
 b21() {

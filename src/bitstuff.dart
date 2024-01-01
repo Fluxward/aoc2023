@@ -103,15 +103,15 @@ class BitArray {
 
   /// copies len bits from this array starting from start into dest starting from the tcs'th int
   void fastCopyInto(BitArray dest, int len, int start, [int tcs = 0]) {
-    _fastCopyInto(dest, len, start);
+    _fastCopyInto(dest, len, start, tcs);
   }
 
   /// copies len bits from this array starting from start into dest starting from the tcs'th int
-  void _fastCopyInto(BitArray dest, int len, int start, [int tcs = 0]) {
+  void _fastCopyInto(BitArray dest, int len, int start, int tcs) {
     if (len < 0) throw Error();
     if (len == 0) return;
     if (len < 64) {
-      copySubInt(dest, len, start, tcs * 64);
+      copySubIntInto(dest, len, start, tcs * 64);
       return;
     }
 
@@ -121,7 +121,7 @@ class BitArray {
 
   void fastCopyWithOffset(BitArray to, int len, int fS, int tS) {
     if (len < 64) {
-      copySubInt(to, len, fS, tS);
+      copySubIntInto(to, len, fS, tS);
       return;
     }
 
@@ -132,36 +132,40 @@ class BitArray {
 
     int firstSourceChunk = getIntAt(fS);
 
-    int loBits = tS % 64;
-    int hiBits = 64 - loBits;
-    int toChunks = tS ~/ 64;
+    int hb = tS % 64;
+    int lb = 64 - hb;
+    int ch = tS ~/ 64;
 
-    ({int lo, int hi}) s = split(firstSourceChunk, hiBits);
+    ({int lo, int hi}) s = split(firstSourceChunk, lb);
 
-    to.data[toChunks] =
-        replaceBits(to.data[toChunks], s.lo, lowMasks[hiBits] << loBits);
+    to.data[ch] = replaceBits(to.data[ch], s.lo, lowMasks[lb] << hb);
 
-    fastCopyInto(to, len - hiBits, fS + hiBits, 1 + (tS - loBits) ~/ 64);
+    fastCopyInto(to, len - lb, fS + lb, ch + 1);
   }
 
-  void copySubInt(BitArray to, int len, int fS, int tS) {
+  void copySubIntInto(BitArray to, int len, int fS, int tS) {
     int source = getIntAt(fS) & lowMasks[len];
-    int hb = tS % 64;
-    int ch = tS ~/ 64;
+
+    to.copySubIntFrom(source, len, tS);
+  }
+
+  void copySubIntFrom(int source, int len, int start) {
+    int hb = start % 64;
+    int ch = start ~/ 64;
     if (hb == 0) {
-      to.data[ch] = replaceBits(to.data[ch], source, lowMasks[len]);
+      data[ch] = replaceBits(data[ch], source, lowMasks[len]);
       return;
     }
     int lb = 64 - hb;
 
     ({int lo, int hi}) s = split(source, lb);
 
-    to.data[ch] = replaceBits(
-        to.data[ch], s.lo, (len >= lb ? lowMasks[lb] : lowMasks[len]) << hb);
+    data[ch] = replaceBits(
+        data[ch], s.lo, (len >= lb ? lowMasks[lb] : lowMasks[len]) << hb);
 
-    if (ch + 1 > to.data.length || len <= lb) return;
+    if (ch + 1 > data.length || len <= lb) return;
 
-    to.data[ch + 1] = replaceBits(to.data[ch + 1], s.hi, lowMasks[len - lb]);
+    data[ch + 1] = replaceBits(data[ch + 1], s.hi, lowMasks[len - lb]);
   }
 
   BitArray copyFrom(int len, int nChunks, int startChunk) {
@@ -231,12 +235,30 @@ class AlignedBitMatrix {
   final int nr;
   final int nc;
 
-  int get nIntsR => nr.ceilDiv(64);
-  int get nIntsC => nc.ceilDiv(64);
-
   AlignedBitMatrix(this.nr, this.nc)
       : rows =
             List<BitArray>.generate(nr, (_) => BitArray(nc), growable: false);
 
+  int countTrue(
+      {int startRow = 0, int startCol = 0, int? endRow, int? endCol}) {
+    int er = endRow ?? nr;
+    int ec = endCol ?? nc;
+
+    int res = 0;
+    for (int r = startRow; r < er; r++) {
+      res += rows[r].slice(ec - startCol, startCol, 1).numTrue;
+    }
+
+    return res;
+  }
+
   BitArray operator [](int i) => rows[i];
+
+  int get hashCode => Object.hashAll([nr, nc, rows]);
+
+  bool operator ==(other) =>
+      other is AlignedBitMatrix &&
+      other.nr == nr &&
+      other.nc == nc &&
+      rows.firstWhereIndexedOrNull((i, e) => e != other.rows[i]) == null;
 }
