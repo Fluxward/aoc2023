@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:collection';
 import 'dart:isolate';
 import 'dart:math';
@@ -34,45 +33,20 @@ void do21b() async {
   init.seq.add(1);
   init[start!] = true;
 
+  int ncc = 0;
   Map<P, PaddedGrid> map = {P(0, 0): init};
-  Map<P, int> ids;
+  Map<P, int> ids = {};
+  Map<P, Cross> cpMap = {};
   Set<Cross> cs = {};
+  Map<Cross, int> cMap = {};
+  Map<(Cross, bool, int, int), Cross> cTrans = {};
+  Set<(Cross, Cross)> transitions = {};
 
-  SendPort sp = await getTimerSendPort(Duration(milliseconds: 500));
+  SendPort sp = await getTimerSendPort(Duration(milliseconds: 50));
 
-  for (int i = 0; i < 1000; i++) {
-    sp.send(i + 1);
-  }
-  cleanup();
-}
-
-class Cross {
-  int? u;
-  int? d;
-  int? l;
-  int? r;
-  int? id;
-
-  int get hashCode => Object.hashAll([u, d, l, r, id]);
-  bool operator ==(other) =>
-      other is Cross &&
-      u == other.u &&
-      d == other.d &&
-      l == other.l &&
-      r == other.r;
-}
-
-void initSqnTree(var start) async {
-  PaddedGrid init = PaddedGrid(nr, nc, 0, Sequence());
-  init.seq.add(1);
-  init[start!] = true;
-
-  // stage 1. characterise grids/steady states
-  Map<P, PaddedGrid> map = {P(0, 0): init};
-  Map<P, (Sequence, int)> patterns = {};
-  Set<Sequence> stableSequences = HashSet();
-
-  for (int i = 0; i < 500; i++) {
+  bool even = false;
+  for (int i = 0; i < 1122; i++) {
+    sp.send("${i + 1}, num cross transitions: ${cTrans.length}");
     Set<P> toCopy = {};
     for (var mE in map.entries) {
       var s = mE.value.evolve(plot);
@@ -82,12 +56,175 @@ void initSqnTree(var start) async {
           toCopy.add(mE.key + d.p);
         }
       }
+      map[mE.key] = s.$1;
+
+      // try ID the grid
+      if (ids.containsKey(mE.key)) continue;
+      var s2 = sqn.findSequence(s.$1.seq.d, 0);
+      if (s2 != null) {
+        ids[mE.key] = s2.$2 * (even ? 1 : -1);
+      }
+    }
+
+    // try id the cross
+    for (var mE in ids.entries) {
+      if (cpMap.containsKey(mE.key)) continue;
+      Cross? c = getCross(mE.key, ids);
+      if (c != null) {
+        c.even = even;
+        cpMap[mE.key] = c;
+        if (cs.add(c)) {
+          cMap[c] = cMap.length;
+          print("$i found new cross: id: ${cMap[c]}: $c, ${mE.value}");
+        }
+      }
+    }
+
+    for (var mE in cpMap.entries) {
+      Cross? c = getCrossTransitions(mE.key, ids, cpMap, cMap);
+      if (c == null) {
+        continue;
+      }
+      c.even = even;
+      P p = mE.key;
+      (Cross, bool, int, int) k = (mE.value, even, p.r % 8, p.c % 8);
+      if (transitions.add((mE.value, c))) {
+        print("$i found cross -> cross map ${ncc++}: $k : $c");
+        if (cTrans.containsKey(k) && cTrans[k] != c) {
+          print("$i cross conflict! $k: existing: ${cTrans[k]}, new: $c");
+        } else {
+          cTrans[k] = c;
+        }
+      }
+    }
+
+    for (P p in toCopy) {
+      PaddedGrid pg =
+          map.putIfAbsent(p, () => PaddedGrid(nr, nc, i + 1, Sequence()));
+      for (dir d in dir.values) {
+        P n = p + d.p;
+
+        PaddedGrid? ng = map[n];
+        if (ng == null) continue;
+
+        switch (d) {
+          case dir.u:
+          case dir.d:
+            ng.m[d == dir.u ? 1 : nr]
+                .fastCopyWithOffset(pg.m[d == dir.u ? 0 : nr + 1], nc, 1, 1);
+          case dir.l:
+          case dir.r:
+            int cf = d == dir.l ? 1 : nc;
+            int ct = d == dir.l ? 0 : nc + 1;
+            for (int i = 1; i <= nr; i++) {
+              pg.m[i][ct] = ng.m[i][cf];
+            }
+        }
+      }
+    }
+    even = !even;
+  }
+
+  var tps = [];
+  // = [for (int i = 0; i < 5; i++) P(2, -3 - i)];
+  for (P tp in tps) {
+    print(
+        "cpmap contains $tp? ${cpMap[tp]}, ${map[tp]}, ${ids[tp]}, ${cMap[cpMap[tp]]}");
+
+    for (dir d in dir.values) {
+      P ntp = tp + d.p;
+      print(
+          " $d: cpmap contains $ntp? ${cpMap[ntp]}, ${map[ntp]}, ${ids[ntp]}, ${cMap[cpMap[ntp]]}");
+      for (dir d2 in dir.values) {
+        P nntp = ntp + d2.p;
+        print(
+            "  $d2: cpmap contains $nntp? ${cpMap[nntp]}, ${map[nntp]},  ${ids[nntp]}, ${cMap[cpMap[nntp]]}");
+      }
+    }
+  }
+  cleanup();
+}
+
+Cross? getCross(P p, Map<P, int> ids) {
+  if (!ids.containsKey(p)) return null;
+  Cross c = Cross();
+  c.id = ids[p]; // sequence ID
+  for (dir d in dir.values) {
+    P n = p + d.p;
+    if (!ids.containsKey(n)) {
+      return null;
+    }
+    c.nids[d] = ids[n]!;
+  }
+  return c;
+}
+
+Cross? getCrossTransitions(
+  P p,
+  Map<P, int> ids,
+  Map<P, Cross> cpMap,
+  Map<Cross, int> cMap,
+) {
+  Cross c = Cross();
+  c.id = cMap[cpMap[p]];
+  if (c.id == null) return null;
+  for (dir di in dir.values) {
+    P n = p + di.p;
+    Cross? cn = cpMap[n];
+    if (cn == null && ids.containsKey(n)) {
+      cn = getCross(n, ids);
+    }
+    int? cid = cMap[cn];
+    if (cid == null) return null;
+    c.nids[di] = cid;
+  }
+  return c;
+}
+
+class Cross {
+  Map<dir, int> nids = HashMap();
+
+  bool even = false;
+
+  int? id;
+  int get hashCode =>
+      Object.hash(nids[dir.u], nids[dir.d], nids[dir.l], nids[dir.r], even, id);
+  bool operator ==(other) =>
+      other is Cross &&
+      other.id == id &&
+      other.even == even &&
+      other.nids.entries.fold(true, (p, e) => p && e.value == nids[e.key]);
+
+  String toString() {
+    return "c: $id, $nids ${even ? 'even' : 'odd'}";
+  }
+}
+
+void initSqnTree(var start) async {
+  PaddedGrid init = PaddedGrid(nr, nc, 0, Sequence());
+  init.seq.add(1);
+  init[start!] = true;
+
+  // stage 1. characterise grids/steady states
+  Map<P, PaddedGrid> map = {P(0, 0): init};
+  Set<(Sequence, int)> stableSequences = HashSet();
+
+  for (int i = 0; i < 800; i++) {
+    Set<P> toCopy = {};
+    for (var mE in map.entries) {
+      var s = mE.value.evolve(plot);
+
+      if (s.$2.isNotEmpty) {
+        for (dir d in s.$2) {
+          toCopy.add(mE.key + d.p);
+        }
+        s.$1.timeToNext = s.$1.timeToNext ?? ((i + 2) - s.$1.birthStep);
+      }
 
       map[mE.key] = s.$1;
-      // update this pattern
-      patterns[mE.key] = (s.$1.seq, mE.value.birthStep);
-      if (s.$1.seq.stable && stableSequences.add(s.$1.seq)) {
-        print("found sequence at ${i + 1}: ${s.$1.seq.d}");
+      if (s.$1.seq.stable &&
+          stableSequences.add((s.$1.seq, s.$1.timeToNext!))) {
+        //print( "found sequence ${stableSequences.length + 1} at ${i + 1}: ${s.$1.seq.d}");
         sqn.add(s.$1.seq, 0);
       }
     }
@@ -117,6 +254,8 @@ void initSqnTree(var start) async {
       }
     }
   }
+
+  sqn.mark();
 }
 
 class SequenceNode {
@@ -142,6 +281,7 @@ class SequenceNode {
     if (numLeaves == 1) {
       id = nid;
       _getSequence();
+      print("sequence $id: ${leaf?.d}");
       return nid + 1;
     }
 
@@ -152,19 +292,19 @@ class SequenceNode {
     return nextId;
   }
 
-  Sequence? findSequence(List<int> data, int depth) {
-    return (depth >= data.length)
-        ? null
-        : leaf ?? next[data[depth]]?.findSequence(data, depth + 1);
+  (Sequence, int)? findSequence(List<int> data, int depth) {
+    return (depth < data.length)
+        ? id == null || leaf == null
+            ? next[data[depth]]?.findSequence(data, depth + 1)
+            : (leaf!, id!)
+        : null;
   }
 
   Sequence? _getSequence() {
-    if (numLeaves > 1) return null;
-
+    assert(numLeaves == 1);
     if (leaf != null) return leaf;
 
     leaf = next.values.first._getSequence();
-
     return leaf;
   }
 }
@@ -208,6 +348,7 @@ class PaddedGrid {
   final AlignedBitMatrix m;
   final Sequence seq;
   final int birthStep;
+  int? timeToNext;
 
   PaddedGrid(this.nr, this.nc, this.birthStep, this.seq)
       : m = AlignedBitMatrix(nr + 2, nc + 2);
