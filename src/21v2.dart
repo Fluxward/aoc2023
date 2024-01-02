@@ -124,24 +124,6 @@ void do21b() async {
     }
     even = !even;
   }
-
-  var tps = [];
-  // = [for (int i = 0; i < 5; i++) P(2, -3 - i)];
-  for (P tp in tps) {
-    print(
-        "cpmap contains $tp? ${cpMap[tp]}, ${map[tp]}, ${ids[tp]}, ${cMap[cpMap[tp]]}");
-
-    for (dir d in dir.values) {
-      P ntp = tp + d.p;
-      print(
-          " $d: cpmap contains $ntp? ${cpMap[ntp]}, ${map[ntp]}, ${ids[ntp]}, ${cMap[cpMap[ntp]]}");
-      for (dir d2 in dir.values) {
-        P nntp = ntp + d2.p;
-        print(
-            "  $d2: cpmap contains $nntp? ${cpMap[nntp]}, ${map[nntp]},  ${ids[nntp]}, ${cMap[cpMap[nntp]]}");
-      }
-    }
-  }
   cleanup();
 }
 
