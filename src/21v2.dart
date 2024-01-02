@@ -12,6 +12,9 @@ int nr = 0;
 int nc = 0;
 
 SequenceNode sqn = SequenceNode();
+List<Sequence> seqs = [];
+Map<Sequence, int> smap = {};
+Map<Sequence, int> timeToProp = {};
 late AlignedBitMatrix plot;
 
 void do21b() async {
@@ -124,6 +127,18 @@ void do21b() async {
     }
     even = !even;
   }
+
+  Set<P> explored = {};
+  Queue<({P p, int steps, int cross})> toExplore = Queue();
+  toExplore.add((p: P(0, 0), steps: 0, cross: 0));
+
+  int count = 0;
+  int stepCount = 26501365;
+
+  while (toExplore.isNotEmpty) {
+    var c = toExplore.removeFirst();
+  }
+
   cleanup();
 }
 
@@ -238,6 +253,10 @@ void initSqnTree(var start) async {
   }
 
   sqn.mark();
+
+  for (var s in stableSequences) {
+    timeToProp[s.$1] = s.$2;
+  }
 }
 
 class SequenceNode {
@@ -264,6 +283,8 @@ class SequenceNode {
       id = nid;
       _getSequence();
       print("sequence $id: ${leaf?.d}");
+      seqs.add(leaf!);
+      smap[leaf!] = nid;
       return nid + 1;
     }
 
@@ -312,6 +333,16 @@ class Sequence {
     }
 
     ud.add(data);
+  }
+
+  int getSteps(int start, int end) {
+    int nS = end - start;
+    if (nS < d.length) {
+      return d[nS];
+    }
+
+    nS = (nS - d.length + 1) & 1; // number of steps after the sequence loops
+    return d[d.length - nS - 1];
   }
 
   int get hashCode => Object.hashAll(d);
