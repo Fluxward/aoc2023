@@ -17,39 +17,44 @@ Map<Sequence, int> smap = {};
 Map<Sequence, int> timeToProp = {};
 late AlignedBitMatrix plot;
 
+final int mult = 1;
 void do21b() async {
   List<String> ls = getLines();
-  nr = ls.length;
-  nc = ls[0].length;
-  plot = AlignedBitMatrix(ls.length, ls[0].length);
+  nr = ls.length * mult;
+  nc = ls[0].length * mult;
+  plot = AlignedBitMatrix(nr, nc);
 
   ({int r, int c})? start;
+  SendPort sp = await getTimerSendPort(Duration(milliseconds: 500));
   ls.forEachIndexed((r, e) => e.split('').forEachIndexed((c, ch) {
         if (ch == 'S') start = (r: r, c: c);
-        plot[r][c] = ch != '#';
+        for (int i = 0; i < mult; i++) {
+          for (int j = 0; j < mult; j++) {
+            plot[r + (i * ls.length)][c + (j * ls[0].length)] = ch != '#';
+          }
+        }
       }));
 
   // stage 1. characterise grids/steady states and prep tree
-  initSqnTree(start);
+  initSqnTree(start, sp);
 
   PaddedGrid init = PaddedGrid(nr, nc, 0, Sequence());
   init.seq.add(1);
   init[start!] = true;
 
-  int ncc = 0;
   Map<P, PaddedGrid> map = {P(0, 0): init};
   Map<P, int> ids = {};
   Map<P, Cross> cpMap = {};
   Set<Cross> cs = {};
+  List<Cross> crs = [];
   Map<Cross, int> cMap = {};
-  Map<(Cross, bool, int, int), Cross> cTrans = {};
+  Map<Cross, Cross> cTrans = {};
   Set<(Cross, Cross)> transitions = {};
 
-  SendPort sp = await getTimerSendPort(Duration(milliseconds: 50));
-
   bool even = false;
-  for (int i = 0; i < 1122; i++) {
-    sp.send("${i + 1}, num cross transitions: ${cTrans.length}");
+  for (int i = 0; i <= 1122; i++) {
+    int total = 0;
+    sp.send("${i + 1}");
     Set<P> toCopy = {};
     for (var mE in map.entries) {
       var s = mE.value.evolve(plot);
@@ -61,12 +66,17 @@ void do21b() async {
       }
       map[mE.key] = s.$1;
 
+      total += mE.value.bitCount;
+
       // try ID the grid
       if (ids.containsKey(mE.key)) continue;
       var s2 = sqn.findSequence(s.$1.seq.d, 0);
       if (s2 != null) {
         ids[mE.key] = s2.$2 * (even ? 1 : -1);
       }
+    }
+    if (i == 65 + 130 + 393) {
+      print(total);
     }
 
     // try id the cross
@@ -78,7 +88,8 @@ void do21b() async {
         cpMap[mE.key] = c;
         if (cs.add(c)) {
           cMap[c] = cMap.length;
-          print("$i found new cross: id: ${cMap[c]}: $c, ${mE.value}");
+          crs.add(c);
+          //print("$i found new cross: id: ${cMap[c]}: $c, ${mE.value}");
         }
       }
     }
@@ -90,11 +101,11 @@ void do21b() async {
       }
       c.even = even;
       P p = mE.key;
-      (Cross, bool, int, int) k = (mE.value, even, p.r % 8, p.c % 8);
+      Cross k = mE.value;
       if (transitions.add((mE.value, c))) {
-        print("$i found cross -> cross map ${ncc++}: $k : $c");
+        //print("$i found cross -> cross map ${ncc++}: $k : $c");
         if (cTrans.containsKey(k) && cTrans[k] != c) {
-          print("$i cross conflict! $k: existing: ${cTrans[k]}, new: $c");
+          //print("$i cross conflict! $k: existing: ${cTrans[k]}, new: $c");
         } else {
           cTrans[k] = c;
         }
@@ -125,19 +136,57 @@ void do21b() async {
         }
       }
     }
+
     even = !even;
   }
 
-  Set<P> explored = {};
+  for (var me in cTrans.entries) {
+    print("${me.key} : ${me.value}");
+  }
+
+  Map<P, ({int step, int count})> explored = {};
   Queue<({P p, int steps, int cross})> toExplore = Queue();
   toExplore.add((p: P(0, 0), steps: 0, cross: 0));
 
-  int count = 0;
+  int total = 0;
   int stepCount = 26501365;
+  int nEx = 0;
+  int maxStep = 0;
 
   while (toExplore.isNotEmpty) {
     var c = toExplore.removeFirst();
+    if (!explored.containsKey(c.p)) {
+      nEx++;
+    }
+    if (explored.containsKey(c.p) && c.steps >= explored[c.p]!.step) continue;
+    maxStep = max(maxStep, c.steps);
+
+    int cid = c.cross;
+    Cross cr = crs[cid];
+    Sequence seq = seqs[cr.id!.abs()];
+    int count = seq.getSteps(c.steps, stepCount);
+
+    int oldCount = explored[c.p]?.count ?? 0;
+    explored[c.p] = (step: c.steps, count: count);
+
+    total += count - oldCount;
+
+    var k = cr;
+    //print(k);
+    Cross transition = cTrans[k]!;
+
+    for (dir d in dir.values) {
+      P n = c.p + d.p;
+      int steps = c.steps + seq.stepsToProp[d]!;
+      int cross = transition.nids[d]!;
+      if (steps < stepCount) {
+        toExplore.add((p: n, steps: steps, cross: cross));
+      }
+    }
+    sp.send("${nEx} states explored, max steps: $maxStep");
   }
+
+  print(total);
 
   cleanup();
 }
@@ -197,16 +246,17 @@ class Cross {
   }
 }
 
-void initSqnTree(var start) async {
+void initSqnTree(var start, SendPort sp) async {
   PaddedGrid init = PaddedGrid(nr, nc, 0, Sequence());
   init.seq.add(1);
   init[start!] = true;
 
   // stage 1. characterise grids/steady states
   Map<P, PaddedGrid> map = {P(0, 0): init};
-  Set<(Sequence, int)> stableSequences = HashSet();
+  Set<Sequence> stableSequences = HashSet();
 
-  for (int i = 0; i < 800; i++) {
+  for (int i = 0; i < 800 * mult * mult; i++) {
+    sp.send(i);
     Set<P> toCopy = {};
     for (var mE in map.entries) {
       var s = mE.value.evolve(plot);
@@ -215,12 +265,10 @@ void initSqnTree(var start) async {
         for (dir d in s.$2) {
           toCopy.add(mE.key + d.p);
         }
-        s.$1.timeToNext = s.$1.timeToNext ?? ((i + 2) - s.$1.birthStep);
       }
 
       map[mE.key] = s.$1;
-      if (s.$1.seq.stable &&
-          stableSequences.add((s.$1.seq, s.$1.timeToNext!))) {
+      if (s.$1.seq.stable && stableSequences.add(s.$1.seq)) {
         //print( "found sequence ${stableSequences.length + 1} at ${i + 1}: ${s.$1.seq.d}");
         sqn.add(s.$1.seq, 0);
       }
@@ -253,10 +301,6 @@ void initSqnTree(var start) async {
   }
 
   sqn.mark();
-
-  for (var s in stableSequences) {
-    timeToProp[s.$1] = s.$2;
-  }
 }
 
 class SequenceNode {
@@ -282,7 +326,7 @@ class SequenceNode {
     if (numLeaves == 1) {
       id = nid;
       _getSequence();
-      print("sequence $id: ${leaf?.d}");
+      //print("sequence $id: ${leaf?.d}");
       seqs.add(leaf!);
       smap[leaf!] = nid;
       return nid + 1;
@@ -318,6 +362,8 @@ class Sequence {
 
   bool stable = false;
 
+  Map<dir, int> stepsToProp = {};
+
   void add(int data) {
     if (stable) return;
     d.add(data);
@@ -345,6 +391,11 @@ class Sequence {
     return d[d.length - nS - 1];
   }
 
+  void updateProp(dir di) {
+    if (stepsToProp.containsKey(di)) return;
+    stepsToProp[di] = d.length + 1;
+  }
+
   int get hashCode => Object.hashAll(d);
 
   bool operator ==(other) =>
@@ -361,7 +412,6 @@ class PaddedGrid {
   final AlignedBitMatrix m;
   final Sequence seq;
   final int birthStep;
-  int? timeToNext;
 
   PaddedGrid(this.nr, this.nc, this.birthStep, this.seq)
       : m = AlignedBitMatrix(nr + 2, nc + 2);
@@ -388,18 +438,22 @@ class PaddedGrid {
 
         if (ch == 0 && next.m[r + 1][1]) {
           hasNext.add(dir.l);
+          seq.updateProp(dir.l);
         }
         if (ch == nIntsC - 1 && next.m[r + 1][bits]) {
           hasNext.add(dir.r);
+          seq.updateProp(dir.r);
         }
       }
 
       if (r == 0 && next.m[1].numTrue > 0) {
         hasNext.add(dir.u);
+        seq.updateProp(dir.u);
       }
 
       if (r == nr - 1 && next.m[nr].numTrue > 0) {
         hasNext.add(dir.d);
+        seq.updateProp(dir.d);
       }
     }
 

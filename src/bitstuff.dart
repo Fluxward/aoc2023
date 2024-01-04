@@ -183,7 +183,11 @@ class BitArray {
   bool get isNotEmpty => !isEmpty;
 
   String toString() {
-    return numTrue.toString();
+    StringBuffer bString = StringBuffer();
+    for (int i = 0; i < length; i++) {
+      bString.write(this[i] ? '1' : '0');
+    }
+    return bString.toString();
   }
 }
 
