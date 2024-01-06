@@ -243,6 +243,14 @@ class AlignedBitMatrix {
       : rows =
             List<BitArray>.generate(nr, (_) => BitArray(nc), growable: false);
 
+  AlignedBitMatrix copy() {
+    AlignedBitMatrix m = AlignedBitMatrix(nr, nc);
+    for (int i = 0; i < nr; i++) {
+      rows[i].fastCopyInto(m.rows[i], nc, 0);
+    }
+    return m;
+  }
+
   int countTrue(
       {int startRow = 0, int startCol = 0, int? endRow, int? endCol}) {
     int er = endRow ?? nr;
@@ -254,6 +262,11 @@ class AlignedBitMatrix {
     }
 
     return res;
+  }
+
+  @override
+  String toString() {
+    return rows.map((e) => e.toString()).join("\n");
   }
 
   BitArray operator [](int i) => rows[i];
