@@ -78,6 +78,8 @@ class BitArray {
       other.length == length &&
       data.foldIndexed<bool>(true, (i, p, e) => p && other[i] == e);
 
+  void clear() => data.forEachIndexed((i, _) => data[i] = 0);
+
   BitArray slice(int len, int start, int inc) {
     if (inc == 1) return fastSlice(len, start);
     BitArray l = BitArray(len);
