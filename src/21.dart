@@ -9,6 +9,24 @@ import 'matrix.dart';
 
 d21(bool s) {
   s ? do21b() : a21();
+
+  int n = 100 * 2023;
+
+  int a = (5492 + 5494 + 5516 + 5514) +
+      (950 + 941 + 923 + 925) * n +
+      (6386 + 6388 + 6408 + 6390) * (n - 1);
+
+  int odds = 1;
+  int evens = 0;
+
+  for (int i = 1; i < n; i++) {
+    if (i & 1 == 1) {
+      evens += 4 * i;
+    } else {
+      odds += 4 * i;
+    }
+  }
+  print(a + (7282 * odds) + 7331 * evens);
 }
 
 b21() {

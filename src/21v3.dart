@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:math';
 
 import 'package:collection/collection.dart';
@@ -32,7 +33,7 @@ void main() {
     [P(66, 1), P(1, 66)]
   ];
 
-  Map<List<P>, List<int>> patterns = {};
+  Map<List<P>, List<int>> patterns = LinkedHashMap();
 
   for (List<P> s in seeds) {
     (AlignedBitMatrix, Set<dir>) cur = (AlignedBitMatrix(nr + 2, nc + 2), {});
@@ -46,6 +47,11 @@ void main() {
           .countTrue(startCol: 1, startRow: 1, endCol: nc + 1, endRow: nr + 1));
     }
   }
+
+  List<int> testIndices = [0, 31, 66, 99, 130, 196, 130 + 131, 130 + 262];
+
+  patterns.values
+      .forEach((element) => print(testIndices.map((e) => element[e]).toList()));
   int n = 100 * 2023;
   int a = 0;
   int b = 0;
