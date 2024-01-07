@@ -3,37 +3,10 @@ import 'dart:math';
 import 'package:collection/collection.dart';
 
 import 'common.dart';
+import 'geom.dart';
 
 d22(bool s) {
   s ? () {} : a();
-}
-
-class P3d {
-  final int x;
-  final int y;
-  final int z;
-
-  P3d(this.x, this.y, this.z);
-
-  String toString() => "x: $x, y: $y, z: $z";
-
-  int get hashCode => Object.hashAll([x, y, z]);
-
-  bool operator ==(other) =>
-      other is P3d && other.x == x && other.y == y && other.z == z;
-
-  P3d operator -(P3d o) => P3d(x - o.x, y - o.y, z - o.z);
-  P3d operator +(P3d o) => P3d(x + o.x, y + o.y, z + o.z);
-  P3d operator *(int k) => P3d(x * k, y * k, z * k);
-  P3d operator ~/(int d) => P3d(x ~/ d, y ~/ d, z ~/ d);
-
-  int get sign => x == 0
-      ? y == 0
-          ? z == 0
-              ? 0
-              : z.sign
-          : y.sign
-      : x.sign;
 }
 
 P3d delta(P3d a, P3d b) {
