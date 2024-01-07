@@ -25,6 +25,17 @@ class P3d {
   P3d operator *(int k) => P3d(x * k, y * k, z * k);
   P3d operator ~/(int d) => P3d(x ~/ d, y ~/ d, z ~/ d);
 
+  int dot(P3d o) => x * o.x + y * o.y + z * o.z;
+  int get lenSq => dot(this);
+
+  double get lend => sqrt(lenSq);
+
+  P3d cross(P3d b) {
+    P3d? a = this;
+    return P3d(
+        a.y * b.z - a.z * b.z, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
+  }
+
   int get sign => x == 0
       ? y == 0
           ? z == 0
