@@ -1,12 +1,10 @@
 import 'dart:collection';
-import 'dart:isolate';
 import 'dart:math';
 
 import 'package:collection/collection.dart';
 
 import 'bitstuff.dart';
 import 'common.dart';
-import 'debug.dart';
 
 List<String> trail = getLines();
 
@@ -17,104 +15,93 @@ BitArray visited = BitArray(nr * nc);
 bool ignoreSlope = false;
 int steps = 0;
 P n = P(0, 1);
-SendPort? sp;
+List<P> forks = [
+  for (int r = 0; r < nr; r++)
+    for (int c = 0; c < nc; c++)
+      if (isFork(r, c)) P(r, c)
+]
+  ..add(n)
+  ..add(fin);
+Map<P, int> forkIndices = {for (int i = 0; i < forks.length; i++) forks[i]: i};
+List<Map<P, int>> dist = List.generate(forks.length, (_) => {});
+
 Future<void> d23(bool sub) async {
   visited[1] = true;
-  sp = await getTimerSendPort(Duration(seconds: 10));
   ignoreSlope = sub;
 
-  if (!sub) {
-    maxDfs();
-    print(maxS);
-  }
-  //indexChokes();
-  //fin = P(1, 1);
-  maxDfs();
+  sub ? b() : maxDfs();
   print(maxS);
-  cleanup();
 }
 
-void indexChokes() {
-  List<P> chokes = [
-    for (int r = 0; r < nr; r++)
-      for (int c = 0; c < nc; c++)
-        if (isChoke(r, c)) P(r, c)
-  ];
-
-  print("choke points:");
-  chokes.forEach((element) {
-    print(element);
+void b() {
+  Stopwatch sw = Stopwatch()..start();
+  int exp = 0;
+  forks.forEachIndexed((i, e) => getAdj(e, i));
+  dist.forEachIndexed((i, element) {
+    print("${forks[i]} -> $element");
   });
+  int dfs(int c, Set<int> visited, int steps) {
+    if (exp % 1000000 == 0) {
+      print("${sw.elapsed}: ${exp}: $c, $steps");
+    }
+    exp++;
+    if (c == forks.length - 1) return steps;
+    int mS = 0;
+    Map<P, int> next = dist[c];
+
+    for (P p in next.keys) {
+      int pi = forkIndices[p]!;
+      if (visited.contains(pi)) continue;
+      int d = steps + dist[c][forks[pi]]!;
+
+      mS = max(mS, dfs(pi, Set.of(visited)..add(pi), d));
+    }
+
+    return mS;
+  }
+
+  int sI = forks.length - 2;
+  print(dfs(sI, {sI}, 0));
+  print(sw.elapsed);
 }
 
-bool isChoke(int r, int c) {
-  Map<P, P> parent = {};
-  Map<P, int> children = {};
-
-  P root(P p) {
-    P pp = parent.putIfAbsent(p, () => p);
-    return pp == p ? p : parent[p] = root(pp);
-  }
-
-  void join(P a, P b) {
-    P aa = root(a);
-    P bb = root(b);
-    if (aa == bb) return;
-    int naa = children.putIfAbsent(aa, () => 1);
-    int nbb = children.putIfAbsent(bb, () => 1);
-    if (naa < nbb) {
-      parent[aa] = bb;
-      children[bb] = naa + nbb;
-    } else {
-      parent[bb] = aa;
-      children[aa] = naa + nbb;
-    }
-  }
-
-  P p = P(r, c);
-  Set<P> seen = {p};
-
-  List<P> getNext(P p) {
-    List<P> ns = [];
-    for (dir d in dir.values) {
-      P n = p + d.p;
-      if (seen.contains(n) ||
-          !inBounds(n.r, n.c, trail) ||
-          trail[n.r][n.c] == '#') continue;
-      ns.add(n);
-    }
-
-    return ns;
-  }
-
-  List<P> ns = getNext(p);
-
-  if (ns.length < 2) return false;
-
-  Queue<P> q = Queue.from(ns);
+void getAdj(P p, int pi) {
+  Queue<(P, int)> q = Queue();
+  Set<P> visited = {};
+  q.add((p, 0));
   while (q.isNotEmpty) {
-    P a = q.removeFirst();
-    if (seen.add(a)) {
+    int steps = q.first.$2;
+    P c = q.removeFirst().$1;
+    if (!visited.add(c)) continue;
+    if (c != p && forkIndices.containsKey(c)) {
+      dist[pi][c] = steps;
       continue;
     }
-    List<P> neighs = getNext(a);
-    neighs.forEach((element) => join(element, a));
-    q.addAll(neighs);
+    q.addAll(getNext(c)
+        .where((e) => inBounds(e.r, e.c, trail))
+        .map((e) => (e, steps + 1)));
   }
+}
 
-  for (int i = 0; i < ns.length; i++) {
-    for (int j = i + 1; j < ns.length; j++) {
-      if (root(ns[i]) == ns[j]) return false;
+List<P> getNext(p) {
+  List<P> next = [];
+  for (dir d in dir.values) {
+    P n = p + d.p;
+    if (!inBounds(n.r, n.c, trail) || trail[n.r][n.c] == '#') {
+      continue;
     }
+    next.add(n);
   }
+  return next;
+}
 
-  return true;
+bool isFork(int r, int c) {
+  return getNext(P(r, c)).length > 2;
 }
 
 int maxS = 0;
 void maxDfs() {
   if (n == fin) {
-    sp?.send("maxS: $maxS");
     maxS = max(maxS, steps);
     return;
   }
