@@ -33,7 +33,7 @@ class P3d {
   P3d cross(P3d b) {
     P3d? a = this;
     return P3d(
-        a.y * b.z - a.z * b.z, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
+        a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
   }
 
   int get sign => x == 0

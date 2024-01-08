@@ -12,7 +12,44 @@ void d24(bool hard) {
 
 void doHard() {
   List<HS> hsl = getLines().map((e) => fromLine(e)).toList();
-  investigations(hsl);
+
+  for (int i = 0; i < hsl.length; i++) {
+    for (int j = i + 1; j < hsl.length; j++) {
+      for (int k = j + 1; k < hsl.length; k++) {
+        P3d p0 = hsl[i].p;
+        P3d p1 = hsl[j].p;
+        P3d p2 = hsl[k].p;
+        P3d v0 = hsl[i].v;
+        P3d v1 = hsl[j].v;
+        P3d v2 = hsl[k].v;
+        P3d v01 = v0 - v1;
+        P3d v12 = v1 - v2;
+        P3d v02 = v0 - v2;
+        P3d p01 = p0 - p1;
+        P3d p02 = p0 - p2;
+        P3d p12 = p1 - p2;
+        P3d p0c1 = p0.cross(p1);
+        P3d p0c2 = p0.cross(p2);
+        P3d p1c2 = p1.cross(p2);
+        P3d a = v01.cross(p01);
+        P3d b = v02.cross(p02);
+        P3d c = v12.cross(p12);
+        P3d d = P3d(v01.dot(p0c1), v02.dot(p0c2), v12.dot(p1c2));
+        Vector3d D = Vector3d.p(d);
+        Matrix3d C = Matrix3d(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z);
+        Matrix3d Cinv = C.invert();
+
+        Vector3d p = (Cinv * D);
+
+        //if ((p.a + p.b + p.c).d == 1) {
+        print("$i, $j, $k");
+        print(p);
+        print((p.a) + (p.b) + (p.c));
+        return;
+        //}
+      }
+    }
+  }
 }
 
 void doEasy() {
@@ -97,12 +134,95 @@ class HS2d {
 
 void investigations(List<HS> h) {
   // no perfect squares
-  findSquareInts(h);
+  //findSquareInts(h);
   // nothing coplanar
-  anyCoplanar(h);
+  //anyCoplanar(h);
   // nothing parallel
-  anyParallel(h);
-  bfs(h);
+  //anyParallel(h);
+  int t = 100000000;
+  ranges(h);
+  print("t: $t");
+  ranges(simulate(h, t));
+  t = 1000000000;
+  print("t: $t");
+  ranges(simulate(h, t));
+  t = 10000000000;
+  print("t: $t");
+  ranges(simulate(h, t));
+  t = 100000000000; // this appears to be the one
+  print("t: $t");
+  ranges(simulate(h, t));
+  t = 200000000000; // this appears to be the one
+  print("t: $t");
+  ranges(simulate(h, t));
+  t = 300000000000; // this appears to be the one
+  print("t: $t");
+  ranges(simulate(h, t));
+  t = 400000000000; // this appears to be the one
+  print("t: $t");
+  ranges(simulate(h, t));
+  t = 500000000000; // this appears to be the one
+  print("t: $t");
+  ranges(simulate(h, t));
+  t = 600000000000; // this appears to be the one
+  print("t: $t");
+  ranges(simulate(h, t));
+  t = 700000000000; // this appears to be the one
+  print("t: $t");
+  ranges(simulate(h, t));
+  t = 800000000000; // this appears to be the one
+  print("t: $t");
+  ranges(simulate(h, t));
+  t = 900000000000; // this appears to be the one
+  print("t: $t");
+  ranges(simulate(h, t));
+  t = 1000000000000;
+  print("t: $t");
+  ranges(simulate(h, t));
+  t = 10000000000000;
+  print("t: $t");
+  ranges(simulate(h, t));
+  t = 100000000000000;
+  print("t: $t");
+  ranges(simulate(h, t));
+}
+
+List<HS> ranges(List<HS> h) {
+  List<HS> n = List.of(h);
+  List<int> r = [
+    h[0].p.x,
+    h[0].p.x,
+    h[0].p.y,
+    h[0].p.y,
+    h[0].p.z,
+    h[0].p.z,
+  ];
+  for (int i = 0; i < h.length; i++) {
+    HS hs = h[i];
+    r[0] = min(r[0], hs.p.x);
+    r[1] = max(r[1], hs.p.x);
+    r[2] = min(r[2], hs.p.y);
+    r[3] = max(r[3], hs.p.y);
+    r[4] = min(r[4], hs.p.z);
+    r[5] = max(r[5], hs.p.z);
+  }
+  print("x: ${r[0]} - ${r[1]}");
+  print("y: ${r[2]} - ${r[3]}");
+  print("z: ${r[4]} - ${r[5]}");
+  for (int i = 0; i < n.length; i++) {
+    n[i] = HS(n[i].p - P3d(r[0], r[2], r[4]), n[i].v);
+  }
+  return n;
+}
+
+List<HS> simulate(List<HS> h, int t) {
+  List<HS> n = List.of(h);
+
+  for (int i = 0; i < n.length; i++) {
+    n[i] = HS(n[i].p + (n[i].v * t), n[i].v);
+  }
+
+  return n;
 }
 
 void findSquareInts(List<HS> h) {

@@ -1,5 +1,8 @@
 import 'dart:math';
 
+import 'bitstuff.dart';
+import 'geom.dart';
+
 typedef Vector2d<T extends num> = Point<T>;
 
 class Matrix2d<T extends num> {
@@ -36,9 +39,9 @@ class Rat {
 
   Rat.i(this.n) : d = 1;
 
-  Rat.f(int numerator, int denominator)
-      : n = numerator ~/ numerator.gcd(denominator),
-        d = numerator.gcd(denominator);
+  Rat.f(int nu, int de)
+      : n = nu, //= nu ~/ nu.gcd(de),
+        d = de; //= nu.gcd(de);
 
   Rat operator +(Rat o) => Rat.f(n * o.d + d * o.n, d * o.d);
 
@@ -54,6 +57,10 @@ class Rat {
 
   bool operator ==(o) =>
       o is Rat && ((n == o.n && d == o.d) || (n == -o.n && d == -o.d));
+
+  String toString() {
+    return d.abs() == 1 ? (n * d.sign).toString() : "$n/$d";
+  }
 }
 
 class Vector3d {
@@ -63,6 +70,9 @@ class Vector3d {
       : data = denom == null
             ? List.unmodifiable([a, b, c])
             : List.unmodifiable([a / denom, b / denom, c / denom]);
+
+  Vector3d.p(P3d p)
+      : data = List.unmodifiable([Rat.i(p.x), Rat.i(p.y), Rat.i(p.z)]);
 
   Rat get a => data[0];
   Rat get b => data[1];
@@ -77,6 +87,10 @@ class Vector3d {
   Vector3d operator *(Rat r) => Vector3d(a.rm(r), b.rm(r), c.rm(r));
 
   bool operator ==(o) => o is Vector3d && a == o.a && b == o.b && c == o.c;
+
+  String toString() {
+    return data.map((e) => e.toString()).join('\n');
+  }
 }
 
 class Matrix3d {
@@ -124,4 +138,8 @@ class Matrix3d {
         v.a * g + v.b * h + v.c * i,
         Rat.i(denom),
       );
+
+  String toString() {
+    return "$denom * \n ${data.map((e) => e.map((f) => f).join(', ')).join('\n')}";
+  }
 }
