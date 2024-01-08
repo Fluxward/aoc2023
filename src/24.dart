@@ -96,8 +96,12 @@ class HS2d {
 }
 
 void investigations(List<HS> h) {
+  // no perfect squares
   findSquareInts(h);
+  // nothing coplanar
   anyCoplanar(h);
+  // nothing parallel
+  anyParallel(h);
 }
 
 void findSquareInts(List<HS> h) {
@@ -116,6 +120,27 @@ void anyCoplanar(List<HS> h) {
       }
     }
   }
+}
+
+void anyParallel(List<HS> h) {
+  for (int i = 0; i < h.length; i++) {
+    for (int j = i + 1; j < h.length; j++) {
+      if (h[i].v.cross(h[j].v) == 0) {
+        print('${h[i]}, ${h[j]} parallel');
+      }
+    }
+  }
+}
+
+void bfs(List<HS> h) {
+  for (int ti = 0; ti < 30; ti++) {
+    for (int tj = ti + 1; tj < 31; tj++) {}
+  }
+}
+
+void bfsFTL(List<HS> h, int ti, int tj) {
+  // pi + ti*vi = pr + ti*vr
+  // pj + tj*vj = pr + tj*vr
 }
 
 bool coplanar(HS a, HS b) {
