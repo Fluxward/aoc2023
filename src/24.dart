@@ -143,7 +143,6 @@ bool doIntersect(HS a, HS b) {
 void bfs(List<HS> h) {
   int lim = 10000;
   for (int ti = 0; ti < lim; ti++) {
-    print("Testing: $ti");
     for (int tj = ti + 1; tj < lim + 1; tj++) {
       bfsFTL(h, ti, tj);
     }
