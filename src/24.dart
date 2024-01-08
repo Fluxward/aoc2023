@@ -102,6 +102,7 @@ void investigations(List<HS> h) {
   anyCoplanar(h);
   // nothing parallel
   anyParallel(h);
+  bfs(h);
 }
 
 void findSquareInts(List<HS> h) {
@@ -132,16 +133,50 @@ void anyParallel(List<HS> h) {
   }
 }
 
+bool doIntersect(HS a, HS b) {
+  P3d p = b.p - a.p;
+  return Matrix3d(a.v.x, a.v.y, a.v.z, b.v.x, b.v.y, b.v.z, p.x, p.y, p.z)
+          .det !=
+      0;
+}
+
 void bfs(List<HS> h) {
-  for (int ti = 0; ti < 30; ti++) {
-    for (int tj = ti + 1; tj < 31; tj++) {}
+  int lim = 10000;
+  for (int ti = 0; ti < lim; ti++) {
+    print("Testing: $ti");
+    for (int tj = ti + 1; tj < lim + 1; tj++) {
+      bfsFTL(h, ti, tj);
+    }
   }
 }
 
 void bfsFTL(List<HS> h, int ti, int tj) {
   // pi + ti*vi = pr + ti*vr
   // pj + tj*vj = pr + tj*vr
+  int td = tj - ti;
+  for (int i = 0; i < h.length; i++) {
+    for (int j = i + 1; j < h.length; j++) {
+      P3d a = h[i].p + h[i].v * ti;
+      P3d b = h[j].p + h[j].v * tj;
+      if (!divides(b - a, td)) continue;
+      P3d v = (b - a) ~/ td;
+      HS c = HS(a, v);
+      bool allIntersect = true;
+      for (int k = 0; k < h.length; k++) {
+        if (!doIntersect(c, h[k])) {
+          allIntersect = false;
+          break;
+        }
+      }
+      if (allIntersect) {
+        print("Solution found: ");
+        print("testing $ti, $tj, ${h[i]}, ${h[j]}");
+      }
+    }
+  }
 }
+
+bool divides(P3d p, int d) => p.x % d == 0 && p.y % d == 0 && p.z % d == 0;
 
 bool coplanar(HS a, HS b) {
   P3d p = a.p - b.p;

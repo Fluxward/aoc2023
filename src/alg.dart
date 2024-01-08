@@ -87,9 +87,9 @@ class Matrix3d {
   Matrix3d(int a, int b, int c, int d, int e, int f, int g, int h, int i,
       [this.denom = 1])
       : data = List.unmodifiable([
-          List.unmodifiable([a, b, c]),
-          List.unmodifiable([d, e, f]),
-          List.unmodifiable([g, h, i]),
+          List<int>.unmodifiable([a, b, c]),
+          List<int>.unmodifiable([d, e, f]),
+          List<int>.unmodifiable([g, h, i]),
         ]);
 
   int get a => data[0][0];
