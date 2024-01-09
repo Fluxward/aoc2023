@@ -1,7 +1,14 @@
 import 'dart:math';
 
-import 'bitstuff.dart';
+import 'package:collection/collection.dart';
+
 import 'geom.dart';
+
+extension BILCM on BigInt {
+  BigInt lcm(BigInt a) {
+    return a * this ~/ a.gcd(this);
+  }
+}
 
 typedef Vector2d<T extends num> = Point<T>;
 
@@ -30,24 +37,24 @@ class Matrix2d<T extends num> {
 }
 
 class Rat {
-  final int n;
-  final int d;
+  final BigInt n;
+  final BigInt d;
 
-  const Rat()
-      : n = 1,
-        d = 1;
+  Rat()
+      : n = BigInt.one,
+        d = BigInt.one;
 
-  Rat.i(this.n) : d = 1;
+  Rat.i(this.n) : d = BigInt.one;
 
-  Rat.f(int nu, int de)
-      : n = nu, //= nu ~/ nu.gcd(de),
-        d = de; //= nu.gcd(de);
+  Rat.f(BigInt nu, BigInt de)
+      : n = nu ~/ nu.gcd(de),
+        d = de ~/ nu.gcd(de);
 
   Rat operator +(Rat o) => Rat.f(n * o.d + d * o.n, d * o.d);
 
-  Rat operator *(int i) => Rat.f(n * i, d);
+  Rat im(BigInt i) => Rat.f(n * i, d);
 
-  Rat rm(Rat o) => Rat.f(n * o.n, d * o.d);
+  Rat operator *(Rat o) => Rat.f(n * o.n, d * o.d);
 
   Rat operator /(Rat o) => Rat.f(n * o.d, d * o.n);
 
@@ -59,7 +66,9 @@ class Rat {
       o is Rat && ((n == o.n && d == o.d) || (n == -o.n && d == -o.d));
 
   String toString() {
-    return d.abs() == 1 ? (n * d.sign).toString() : "$n/$d";
+    return d.abs() == BigInt.one
+        ? (n * BigInt.from(d.sign)).toString()
+        : "$n/$d";
   }
 }
 
@@ -71,12 +80,22 @@ class Vector3d {
             ? List.unmodifiable([a, b, c])
             : List.unmodifiable([a / denom, b / denom, c / denom]);
 
+  Vector3d.r(List<Rat> r, [Rat? denom]) : this(r[0], r[1], r[2], denom);
+
   Vector3d.p(P3d p)
-      : data = List.unmodifiable([Rat.i(p.x), Rat.i(p.y), Rat.i(p.z)]);
+      : data = List.unmodifiable([
+          Rat.i(BigInt.from(p.x)),
+          Rat.i(BigInt.from(p.y)),
+          Rat.i(BigInt.from(p.z))
+        ]);
 
   Rat get a => data[0];
   Rat get b => data[1];
   Rat get c => data[2];
+
+  Rat get x => data[0];
+  Rat get y => data[1];
+  Rat get z => data[2];
 
   Vector3d operator +(Vector3d v) => Vector3d(a + v.a, b + v.b, c + v.c);
 
@@ -84,9 +103,18 @@ class Vector3d {
 
   Vector3d operator -(Vector3d o) => this + -o;
 
-  Vector3d operator *(Rat r) => Vector3d(a.rm(r), b.rm(r), c.rm(r));
+  Vector3d operator *(Rat r) => Vector3d(a * r, b * r, c * r);
+
+  Rat operator [](int i) => data[i];
 
   bool operator ==(o) => o is Vector3d && a == o.a && b == o.b && c == o.c;
+  Rat dot(Vector3d o) => a * o.a + b * o.b + c * o.c;
+
+  Vector3d cross(Vector3d b) {
+    Vector3d? a = this;
+    return Vector3d(
+        a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
+  }
 
   String toString() {
     return data.map((e) => e.toString()).join('\n');
@@ -94,29 +122,48 @@ class Vector3d {
 }
 
 class Matrix3d {
-  final List<List<int>> data;
+  late final List<List<BigInt>> data;
 
-  final int denom;
+  late final BigInt? denom;
 
-  Matrix3d(int a, int b, int c, int d, int e, int f, int g, int h, int i,
-      [this.denom = 1])
+  Matrix3d(BigInt a, BigInt b, BigInt c, BigInt d, BigInt e, BigInt f, BigInt g,
+      BigInt h, BigInt i,
+      [this.denom])
       : data = List.unmodifiable([
-          List<int>.unmodifiable([a, b, c]),
-          List<int>.unmodifiable([d, e, f]),
-          List<int>.unmodifiable([g, h, i]),
+          List<BigInt>.unmodifiable([a, b, c]),
+          List<BigInt>.unmodifiable([d, e, f]),
+          List<BigInt>.unmodifiable([g, h, i]),
         ]);
+  Matrix3d.r(Rat a, Rat b, Rat c, Rat d, Rat e, Rat f, Rat g, Rat h, Rat i,
+      [BigInt? denom]) {
+    List<Rat> input = [a, b, c, d, e, f, g, h, i];
+    BigInt lcm = input.fold(denom ?? BigInt.one, (p, e) => p.lcm(e.d));
+    input.forEachIndexed((index, element) {
+      input[index] = element.im(lcm);
+      assert(input[index].d == BigInt.one);
+    });
+    data = List<List<BigInt>>.unmodifiable(List<List<BigInt>>.generate(
+        3,
+        (r) => List<BigInt>.unmodifiable(
+            List<BigInt>.generate(3, (c) => input[r * 3 + c].n))));
+    this.denom = lcm;
+  }
 
-  int get a => data[0][0];
-  int get b => data[0][1];
-  int get c => data[0][2];
-  int get d => data[1][0];
-  int get e => data[1][1];
-  int get f => data[1][2];
-  int get g => data[2][0];
-  int get h => data[2][1];
-  int get i => data[2][2];
+  Matrix3d.rows(List<Vector3d> r)
+      : this.r(r[0][0], r[0][1], r[0][2], r[1][0], r[1][1], r[1][2], r[2][0],
+            r[2][1], r[2][2]);
 
-  int get det =>
+  BigInt get a => data[0][0];
+  BigInt get b => data[0][1];
+  BigInt get c => data[0][2];
+  BigInt get d => data[1][0];
+  BigInt get e => data[1][1];
+  BigInt get f => data[1][2];
+  BigInt get g => data[2][0];
+  BigInt get h => data[2][1];
+  BigInt get i => data[2][2];
+
+  BigInt get det =>
       a * (e * i - f * h) + b * (f * g - d * i) + c * (d * h - e * g);
 
   Matrix3d invert() => Matrix3d(
@@ -133,10 +180,10 @@ class Matrix3d {
       );
 
   Vector3d operator *(Vector3d v) => Vector3d(
-        v.a * a + v.b * b + v.c * c,
-        v.a * d + v.b * e + v.c * f,
-        v.a * g + v.b * h + v.c * i,
-        Rat.i(denom),
+        v.a.im(a) + v.b.im(b) + v.c.im(c),
+        v.a.im(d) + v.b.im(e) + v.c.im(f),
+        v.a.im(g) + v.b.im(h) + v.c.im(i),
+        Rat.i(denom ?? BigInt.one),
       );
 
   String toString() {
