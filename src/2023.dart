@@ -19,6 +19,7 @@ import '21.dart';
 import '22.dart';
 import '23.dart';
 import '24.dart';
+import '25.dart';
 import '3.dart';
 import '4.dart';
 import '5.dart';
@@ -53,6 +54,7 @@ List<Function(bool)> jump = [
   d22,
   d23,
   d24,
+  d25,
 ];
 void main(List<String> arguments) {
   exitCode = 0;

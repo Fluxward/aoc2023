@@ -3,7 +3,7 @@ import 'dart:io';
 import 'dart:isolate';
 
 ReceivePort _timerRecvPort = ReceivePort();
-late Isolate _timerIsolate;
+Isolate? _timerIsolate;
 
 Future<SendPort> getTimerSendPort(Duration period) async {
   _timerIsolate = await Isolate.spawn<SendPort>((sp) {
@@ -25,5 +25,5 @@ Future<SendPort> getTimerSendPort(Duration period) async {
 }
 
 void cleanup([int priority = Isolate.immediate]) {
-  _timerIsolate.kill(priority: priority);
+  _timerIsolate?.kill(priority: priority);
 }
