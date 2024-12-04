@@ -10,15 +10,20 @@ void day4a(List<String> lines) {
 }
 
 void day4b(List<String> lines) {
-  Map<String, int> v = {"X" : 100, "M" : 1, "A" : 0, "S" : -1};
-  List<List<int>> g = lines.map((e) => e.split("").map((c) => v[c]!).toList()).toList();
+  Map<String, int> v = {"M" : 1, "A" : 0, "S" : -1};
+  List<List<int?>> g = lines.map((e) => e.split("").map((c) => v[c]).toList()).toList();
   int count = 0;
   for (int i = 0; i < g.length - 2; i++)
     for (int j = 0; j < g.length - 2; j++)
-      if (((g[i][j] == 1 || g[i][j] == -1) && g[i + 1][j + 1] == 0) &&
-          (g[i+2][j] == 1 || g[i+2][j] == -1) &&        
-          (g[i][j] + g[i + 2][j + 2] == 0) &&
-          (g[i + 2][j] + g[i][j + 2] == 0)) count++;
+      if ((g[i][j] != null &&
+              g[i + 1][j + 1] != null &&
+              g[i + 2][j + 2] != null &&
+              g[i + 2][j] != null &&
+              g[i][j + 2] != null) &&
+          ((g[i][j] == 1 || g[i][j] == -1) && g[i + 1][j + 1] == 0) &&
+          (g[i + 2][j] == 1 || g[i + 2][j] == -1) &&
+          (g[i][j] == -g[i + 2][j + 2]!) &&
+          (g[i + 2][j] == -g[i][j + 2]!)) count++;
 
   print(count);
 }
