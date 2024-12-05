@@ -20,9 +20,10 @@ void day4b(List<String> lines) {
               g[i + 2][j + 2] != null &&
               g[i + 2][j] != null &&
               g[i][j + 2] != null) &&
-          ((g[i][j] == 1 || g[i][j] == -1) && g[i + 1][j + 1] == 0) &&
-          (g[i + 2][j] == 1 || g[i + 2][j] == -1) &&
+          g[i + 1][j + 1] == 0 &&
+          (g[i][j] == 1 || g[i][j] == -1) &&
           (g[i][j] == -g[i + 2][j + 2]!) &&
+          (g[i + 2][j] == 1 || g[i + 2][j] == -1) &&
           (g[i + 2][j] == -g[i][j + 2]!)) count++;
 
   print(count);
