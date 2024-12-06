@@ -10,12 +10,12 @@ void d5(bool isPart2) {
 
   lines
       .sublist(0, rulesEnd)
-      .map((l) => l.split('|').map((e) => int.parse(e)).toList())
-      .forEach((r) => ordering.putIfAbsent(r[0], Set.new).add(r[1]));
+      .map((line) => line.split('|').map((e) => int.parse(e)).toList())
+      .forEach((rule) => ordering.putIfAbsent(rule[0], Set.new).add(rule[1]));
 
   print(lines
       .sublist(rulesEnd + 1)
-      .map((e) => e.split(",").map((s) => int.parse(s)).toList())
+      .map((line) => line.split(",").map((s) => int.parse(s)).toList())
       .fold<int>(
           0,
           (p, e) =>
