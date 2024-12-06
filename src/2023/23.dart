@@ -78,7 +78,7 @@ void getAdj(P p, int pi) {
       continue;
     }
     q.addAll(getNext(c)
-        .where((e) => inBounds(e.r, e.c, trail))
+        .where((e) => inBoundsString(e.r, e.c, trail))
         .map((e) => (e, steps + 1)));
   }
 }
@@ -87,7 +87,7 @@ List<P> getNext(p) {
   List<P> next = [];
   for (dir d in dir.values) {
     P n = p + d.p;
-    if (!inBounds(n.r, n.c, trail) || trail[n.r][n.c] == '#') {
+    if (!inBoundsString(n.r, n.c, trail) || trail[n.r][n.c] == '#') {
       continue;
     }
     next.add(n);
@@ -136,7 +136,7 @@ void maxDfs() {
 
   for (dir d in dir.values) {
     n += d.p;
-    if (!inBounds(n.r, n.c, trail) ||
+    if (!inBoundsString(n.r, n.c, trail) ||
         visited[n.r * nc + n.c] ||
         trail[n.r][n.c] == '#') {
       n -= d.p;

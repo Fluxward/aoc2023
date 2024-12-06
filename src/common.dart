@@ -4,6 +4,21 @@ import 'dart:math';
 typedef P = Point<int>;
 typedef Ps = List<P>;
 
+class GridVec {
+  P pos;
+  dir d;
+
+  GridVec(this.pos, this.d);
+
+  String toString() => "$pos => $d";
+
+  int get hashCode => Object.hashAll([pos, d]);
+
+  bool operator ==(other) => other is GridVec && other.pos == pos && other.d == d;
+
+  GridVec walk() => GridVec(d + pos, d);
+}
+
 extension RCUtil on P {
   int get r => this.x;
   int get c => this.y;
@@ -105,7 +120,10 @@ List<String> getLines() => [
         line
     ];
 
-bool inBounds(int r, int c, List<String> l) {
+bool inBoundsString(int r, int c, List<String> l) {
+  return !(r < 0 || r >= l.length || c < 0 || c >= l[r].length);
+}
+bool inBounds(int r, int c, List<List<Object>> l) {
   return !(r < 0 || r >= l.length || c < 0 || c >= l[r].length);
 }
 

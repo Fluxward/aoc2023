@@ -33,7 +33,7 @@ void traverse(List<String> ls, dir ed, P pos, Set<P> en, Set<(P, dir)> seen) {
   dir cDir = ed;
   P curT = pos;
 
-  while (inBounds(curT.r, curT.c, ls)) {
+  while (inBoundsString(curT.r, curT.c, ls)) {
     if (!seen.add((curT, cDir.rev()))) return;
     en.add(curT);
 
