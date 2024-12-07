@@ -188,6 +188,17 @@ enum dir {
   Point<int> operator +(other) => other + p;
 }
 
+extension IntOps on int {
+  int concat(int other) => (this * exp(10, other.numDigits())) + other;
+  int numDigits() => this.abs() < 10 ? 1 : (this ~/ 10).numDigits() + 1;
+  int exp(int base, int pow) => pow != 0
+      ? exp(base, pow ~/ 2) *
+          exp(base, pow ~/ 2) *
+          ((pow % 2 == 1) ? base : 1)
+      : 1;
+  
+}
+
 extension PointAccess on List<String> {
   String at(P p) => this[p.r][p.c];
 }
