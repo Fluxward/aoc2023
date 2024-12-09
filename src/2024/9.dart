@@ -8,9 +8,6 @@ d9(bool s) {
   var data = input.whereIndexed((i, e) => (i % 2) == 0).toList();
   var space = input.whereIndexed((i, e) => (i % 2) == 1).toList();
 
-  var rdi = data.reversed.iterator;
-  var spi = space.iterator;
-
   int totalSpace = data.reduce((v, w) => v + w);
 
   int count = 0;
