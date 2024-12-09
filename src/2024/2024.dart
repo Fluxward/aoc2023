@@ -26,7 +26,7 @@ import '5.dart';
 import '6.dart';
 import '7.dart';
 import '8.dart';
-// import '9.dart';
+import '9.dart';
 
 List<Function(bool)> jump = [
   (_) {},
@@ -38,7 +38,7 @@ List<Function(bool)> jump = [
   d6,
   d7,
   d8,
-  // d9,
+  d9,
   // d10,
   // d11,
   // d12,
