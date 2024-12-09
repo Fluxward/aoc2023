@@ -15,11 +15,12 @@ bool isSafe(List<int> l) =>
     isConsistent(l) &&
     (l.length < 2 ||
         l
-            .sublist(1)
+            .skip(1)
             .mapIndexed((i, e) => (l[i] - e).abs())
             .every((d) => d > 0 && d < 4));
 
 bool isSafeWithSkip(List<int> l) =>
     isSafe(l) ||
-    l.foldIndexed<bool>(false,
-        (i, p, e) => p || isSafe([...l.whereNotIndexed((i0, e0) => i0 == i)]));
+    l
+        .mapIndexed((i, e) => isSafe([...l.whereIndexed((i0, e0) => i0 == i)]))
+        .any((e) => e);

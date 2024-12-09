@@ -1,3 +1,5 @@
+import 'package:collection/collection.dart';
+
 import '../common.dart';
 
 void d4(bool sub) {
@@ -10,35 +12,27 @@ void day4a(List<String> lines) {
 }
 
 void day4b(List<String> lines) {
-  Map<String, int> v = {"M" : 1, "A" : 0, "S" : -1};
-  List<List<int?>> g = lines.map((e) => e.split("").map((c) => v[c]).toList()).toList();
+  Set<String> ms = {'M', 'S'};
+  List<List<String>> g = lines.map((e) => e.split("")).toList();
   int count = 0;
-  for (int i = 0; i < g.length - 2; i++)
-    for (int j = 0; j < g.length - 2; j++)
-      if ((g[i][j] != null &&
-              g[i + 1][j + 1] != null &&
-              g[i + 2][j + 2] != null &&
-              g[i + 2][j] != null &&
-              g[i][j + 2] != null) &&
-          g[i + 1][j + 1] == 0 &&
-          (g[i][j] == 1 || g[i][j] == -1) &&
-          (g[i][j] == -g[i + 2][j + 2]!) &&
-          (g[i + 2][j] == 1 || g[i + 2][j] == -1) &&
-          (g[i + 2][j] == -g[i][j + 2]!)) count++;
+  for (int i = 1; i < g.length - 1; i++)
+    for (int j = 1; j < g.length - 1; j++)
+      if (g[i][j] == 'A' &&
+          ms.difference({g[i - 1][j - 1], g[i + 1][j + 1]}).isEmpty &&
+          ms.difference({g[i - 1][j + 1], g[i + 1][j - 1]}).isEmpty) count++;
 
   print(count);
 }
 
-int countXmas(Iterable<String> lines) {
-  return lines.fold(0, (p, e) => p + RegExp(r'XMAS').allMatches(e).length) + lines.fold(0, (p, e) => p + RegExp(r'SAMX').allMatches(e).length);
-}
+int countXmas(Iterable<String> lines) => [RegExp(r'XMAS'), RegExp(r'SAMX')]
+    .map((e) => lines.map((m) => e.allMatches(m).length))
+    .flattened
+    .reduce((v, e) => v + e);
 
-List<String> transpose(Iterable<String> lines) {
-  return [for (int i = 0; i < lines.length; i++) lines.map((e) => e[i]).join()];
-}
+List<String> transpose(Iterable<String> lines) =>
+    IterableZip(lines.map((s) => s.split(''))).map((l) => l.join()).toList();
 
-List<String> diagonalise(List<String> lines) {
-  return [...[for (int r = 0; r < lines.length; r++) [for (int c = 0; c <= r; c++) lines[r - c][c]].join()],
+List<String> diagonalise(List<String> lines) =>
+  [...[for (int r = 0; r < lines.length; r++) [for (int c = 0; c <= r; c++) lines[r - c][c]].join()],
   ...[for (int c = 1; c < lines.length; c++) [for (int r = lines.length - 1; r >= c; r--) lines[r][lines.length - 1 + c - r]].join()]
   ];
-}
