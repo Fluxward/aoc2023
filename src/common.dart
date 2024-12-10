@@ -202,6 +202,12 @@ extension IntOps on int {
 extension PointAccess on List<String> {
   String at(P p) => this[p.r][p.c];
 }
+extension PointAccessList<T> on List<List<T>> {
+  T at(P p) => this[p.r][p.c];
+}
+
+
+
 
 int lcm(int a, int b) {
   if (a == 0 || b == 0) return 0;
