@@ -5,7 +5,7 @@ import 'package:args/args.dart';
 import '1.dart';
 import '10.dart';
 // import '20.dart';
-// import '11.dart';
+import '11.dart';
 // import '12.dart';
 // import '13.dart';
 // import '14.dart';
@@ -40,7 +40,7 @@ List<Function(bool)> jump = [
   d8,
   d9,
   d10,
-  // d11,
+  d11,
   // d12,
   // d13,
   // d14,

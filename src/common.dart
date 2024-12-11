@@ -14,7 +14,8 @@ class GridVec {
 
   int get hashCode => Object.hashAll([pos, d]);
 
-  bool operator ==(other) => other is GridVec && other.pos == pos && other.d == d;
+  bool operator ==(other) =>
+      other is GridVec && other.pos == pos && other.d == d;
 
   GridVec walk() => GridVec(d + pos, d);
 }
@@ -123,6 +124,7 @@ List<String> getLines() => [
 bool inBoundsString(int r, int c, List<String> l) {
   return !(r < 0 || r >= l.length || c < 0 || c >= l[r].length);
 }
+
 bool inBounds(int r, int c, List<List<Object>> l) {
   return !(r < 0 || r >= l.length || c < 0 || c >= l[r].length);
 }
@@ -188,26 +190,22 @@ enum dir {
   Point<int> operator +(other) => other + p;
 }
 
+int exp(int base, int pow) => pow != 0
+    ? exp(base, pow ~/ 2) * exp(base, pow ~/ 2) * ((pow % 2 == 1) ? base : 1)
+    : 1;
+
 extension IntOps on int {
   int concat(int other) => (this * exp(10, other.numDigits())) + other;
-  int numDigits() => this.abs() < 10 ? 1 : (this ~/ 10).numDigits() + 1;
-  int exp(int base, int pow) => pow != 0
-      ? exp(base, pow ~/ 2) *
-          exp(base, pow ~/ 2) *
-          ((pow % 2 == 1) ? base : 1)
-      : 1;
-  
+  int numDigits() => this == 0 ? 1 : (log(this.abs()) / log(10)).floor() + 1;
 }
 
 extension PointAccess on List<String> {
   String at(P p) => this[p.r][p.c];
 }
+
 extension PointAccessList<T> on List<List<T>> {
   T at(P p) => this[p.r][p.c];
 }
-
-
-
 
 int lcm(int a, int b) {
   if (a == 0 || b == 0) return 0;

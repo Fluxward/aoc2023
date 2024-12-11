@@ -23,6 +23,6 @@ d10(bool sub) {
       .mapIndexed((r, l) => l
           .mapIndexed((c, e) => sub ? scores[r][c].$2 : scores[r][c].$1.length)
           .whereIndexed((c, e) => grid[r][c] == 0)
-          .reduce((a, b) => a + b))
+          .fold(0, (a, b) => a + b))
       .reduce((a, b) => a + b));
 }
