@@ -27,14 +27,16 @@ List<List<bool>> rboxes = input
         .toList())
     .toList();
 
+Set<P> toMove = {};
+
 bool lcanMove(P p, dir d) {
+  toMove.add(p);
   P n = d + p;
   if (n.r == p.r) {
     if ((d == dir.r && wwalls.at(d + n)) || (d == dir.l) && wwalls.at(n))
       return false;
 
     if (!lboxes.at(d + n) || lcanMove(d + n, d)) {
-      lmove(p, d);
       return true;
     }
   } else {
@@ -43,7 +45,6 @@ bool lcanMove(P p, dir d) {
     if ((!rboxes.at(n) || lcanMove(dir.l + n, d)) &&
         (!lboxes.at(n) || lcanMove(n, d)) &&
         (!lboxes.at(dir.r + n) || lcanMove(dir.r + n, d))) {
-      lmove(p, d);
       return true;
     }
   }
@@ -58,16 +59,17 @@ bool canMove(P p, dir d) {
       (!rboxes.at(n) || lcanMove(dir.l + n, d));
 }
 
-void lmove(P p, dir d) {
-  if (!lboxes.at(p)) return;
+void doMove(dir d) {
+  for (P p in toMove) {
+    lboxes[p.r][p.c] = false;
+    rboxes[p.r][p.c + 1] = false;
+  }
 
-  lboxes[p.r][p.c] = false;
-  rboxes[p.r][p.c + 1] = false;
-
-  P n = d + p;
-
-  lboxes[n.r][n.c] = true;
-  rboxes[n.r][n.c + 1] = true;
+  for (P p in toMove) {
+    P n = d + p;
+    lboxes[n.r][n.c] = true;
+    rboxes[n.r][n.c + 1] = true;
+  }
 }
 
 List<dir> moves = movesMain
@@ -88,35 +90,42 @@ P robot = P(rr, rc);
 void init15() {
   rr = input.indexWhere((s) => s.contains("@"));
   rc = 2 * input[rr].indexOf('@');
-robot = P(rr, rc);
+  robot = P(rr, rc);
 }
 
 int curMove = 0;
 void step() {
   if (curMove == moves.length) return;
 
+  toMove.clear();
   dir m = moves[curMove++];
   if (canMove(robot, m)) {
     robot = m + robot;
+    doMove(m);
   }
 }
 
 int gr() => lboxes
-      .mapIndexed((r, l) =>
-          l.mapIndexed((c, b) => b ? 100 * r + c : 0).reduce((a, b) => a + b))
-      .reduce((a, b) => a + b);
+    .mapIndexed((r, l) =>
+        l.mapIndexed((c, b) => b ? 100 * r + c : 0).reduce((a, b) => a + b))
+    .reduce((a, b) => a + b);
 
 class Plotter15 extends StatelessWidget {
   const Plotter15({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Column(children: List.generate(wwalls.length, (r) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(wwalls.length, (r) {
         return Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(wwalls[r].length, (c) {
             return SizedBox(
-                width: 20,
-                height: 20,
+                width: 5,
+                height: 5,
                 child: wwalls[r][c]
                     ? const DecoratedBox(
                         decoration: BoxDecoration(color: Colors.black))

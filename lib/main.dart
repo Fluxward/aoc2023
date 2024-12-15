@@ -56,7 +56,10 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMixin {
+class _MyHomePageState extends State<MyHomePage>
+    with SingleTickerProviderStateMixin {
+  bool play = false;
+  int count = 0;
   late Animation<int> animation;
   late AnimationController controller;
 
@@ -64,16 +67,17 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
   void initState() {
     super.initState();
     init15();
-    controller =
-        AnimationController(duration: const Duration(seconds: 60), vsync: this);
+    controller = AnimationController(
+        duration: const Duration(seconds: 20040 ~/ 30), vsync: this);
     animation = Tween<int>(begin: 0, end: 20000).animate(controller)
       ..addListener(() {
         setState(() {
           // The state that has changed here is the animation object's value.
+          count++;
           step();
         });
       });
-    controller.forward();
+    //controller.forward();
   }
 
   void _incrementCounter() {
@@ -83,9 +87,10 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
       // so that the display can reflect the updated values. If we changed
       // _counter without calling setState(), then the build method would not be
       // called again, and so nothing would appear to happen.
-      step();
+      controller.forward();
     });
   }
+
   @override
   Widget build(BuildContext context) {
     // This method is rerun every time setState is called, for instance as done
@@ -123,6 +128,7 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
           // wireframe for each widget.
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
+            Text("current frame: $count"),
             Plotter15(),
           ],
         ),
