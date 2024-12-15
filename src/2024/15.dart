@@ -100,6 +100,7 @@ b15() {
 
   //printState(null);
   print(lboxes.mapIndexed((r, l) => l.mapIndexed((c, b) => b ? 100 * r + c : 0).reduce((a, b) => a + b)).reduce((a, b) => a + b));
+  print(rboxes.mapIndexed((r, l) => l.mapIndexed((c, b) => b ? 100 * r + c : 0).reduce((a, b) => a + b)).reduce((a, b) => a + b));
 }
 
 a15() {
