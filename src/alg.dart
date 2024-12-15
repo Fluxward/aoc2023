@@ -36,6 +36,19 @@ class Matrix2d<T extends num> {
       Vector2d(v.x * a + v.y * b, v.x * c + v.y * d);
 }
 
+class BIM2 {
+  final BigInt a;
+  final BigInt b;
+  final BigInt c;
+  final BigInt d;
+
+  BIM2(this.a, this.b, this.c, this.d);
+
+  BigInt get det => a * d - b * c;
+
+  BIM2? get detInverse => det == 0 ? null : BIM2(d, -b, -c, a);
+}
+
 class Rat {
   final BigInt n;
   final BigInt d;

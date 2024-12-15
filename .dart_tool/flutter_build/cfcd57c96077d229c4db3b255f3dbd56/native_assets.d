@@ -1,0 +1,1 @@
+ /home/h/projects/aoc2023/.dart_tool/flutter_build/cfcd57c96077d229c4db3b255f3dbd56/native_assets.yaml: 
