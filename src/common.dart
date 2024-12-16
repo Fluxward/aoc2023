@@ -189,16 +189,17 @@ enum dir {
 
   Point<int> operator +(other) => other + p;
 
-  String toString() { switch (this) {
-    case u:
-      return '^';
-    case d:
-      return 'v';
-    case l:
-      return '<';
-    case r:
-      return '>';
-  }
+  String toString() {
+    switch (this) {
+      case u:
+        return '^';
+      case d:
+        return 'v';
+      case l:
+        return '<';
+      case r:
+        return '>';
+    }
   }
 }
 
@@ -222,4 +223,11 @@ extension PointAccessList<T> on List<List<T>> {
 int lcm(int a, int b) {
   if (a == 0 || b == 0) return 0;
   return ((a ~/ a.gcd(b)) * b);
+}
+
+extension MazeStuff on List<String> {
+  P pointOf(String ch) {
+    int r = indexWhere((s) => s.contains(ch));
+    return r >= 0 ? P(r, this[r].indexOf(ch)) : P(-1, -1);
+  }
 }
