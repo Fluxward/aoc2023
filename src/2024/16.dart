@@ -1,9 +1,5 @@
 import 'package:collection/collection.dart';
-
-import '../2023/21.dart';
 import '../common.dart';
-
-import '4.dart';
 
 List<String> input = getLines();
 List<List<bool>> walls =
@@ -20,21 +16,17 @@ class State {
   State(this.g, this.t, this.d);
 
   int get hn => e.mhd(g.pos);
-  
   int get gn => 1000 * t + d;
-
   int get fn => hn + gn;
-
   P get p => g.pos;
   State get walk => State(g.walk, t, d + 1);
-
   State get rt => State(g.rt, t + 1, d);
   State get lt => State(g.lt, t + 1, d);
 
   @override
   bool operator ==(Object other) =>
       other is State && other.g == g && other.t == t && other.d == d;
-      
+
   @override
   int get hashCode => Object.hashAll([g, t, d]);
 
@@ -62,36 +54,26 @@ void d16(bool sub) {
         anc[cur.g]!.$2.add(curS.$2!);
       }
     }
-    // check forward
     if (!walls.at(cur.walk.p)) q.add((cur.walk, cur));
-
-    [cur.rt, cur.lt].where((tv) => !seen.contains(tv.g) && !seen.contains(tv.g.rev)).forEach((s) => q.add((s, cur)));
+    [cur.rt, cur.lt]
+        .where((tv) => !seen.contains(tv.g) && !seen.contains(tv.g.rev))
+        .forEach((s) => q.add((s, cur)));
   }
 
-  final int best = q.first.$1.gn;
-  print(best);
+  if (!sub) {
+    print(q.first.$1.gn);
+    return;
+  }
 
-  if (!sub) return;
-
-  GridVec fv = q.first.$1.g;
-
-  anc.putIfAbsent(fv, () => (0, {q.first.$2!}));
+  anc.putIfAbsent(q.first.$1.g, () => (0, {q.first.$2!}));
 
   Map<P, int> on = {};
-  Set<State> prev(GridVec v) => anc[v]?.$2??{};
-
-  void addOn(P p) => on[p] = 1 + on.putIfAbsent(p, () => 0);
-  
 
   void bt(State s) {
-    addOn(s.p);
-    prev(s.g).forEach(bt);
+    on[s.p] = 1 + on.putIfAbsent(s.p, () => 0);
+    (anc[s.g]?.$2 ?? {}).forEach(bt);
   }
 
   bt(q.first.$1);
-
   print(on.length);
-
-  //walls.mapIndexed((r, l) => l.mapIndexed((c, b) => b ? '#' : on.containsKey(P(r, c))? (on[P(r,c)]! < 10) ? on[P(r,c)] : 'X' : '.').join()).forEach(print);
-  //walls.mapIndexed((r, l) => l.mapIndexed((c, b) => b ? '#' : dir.values.any((d) => seen.contains(GridVec(P(r,c), d))) ? 'O' : '.').join()).forEach(print);
 }
