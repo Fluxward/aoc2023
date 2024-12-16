@@ -16,7 +16,7 @@ void a() {
   P s = input.pointOf('S');
   P e = input.pointOf('E');
 
-  print([s, e]);
+  print([s, e].join('=>'));
 }
 
 void b() {}
