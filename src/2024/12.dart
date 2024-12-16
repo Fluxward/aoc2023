@@ -23,7 +23,7 @@ d12(bool sub) {
           inBounds(n.pos.r, n.pos.c, garden) && garden.at(n.pos) == type)) {
         if (currentRegion.contains(n)) {
           edgeSet[p]!.remove(n.d);
-          edgeSet[n]!.remove(n.d.rev());
+          edgeSet[n]!.remove(n.d.rev);
         }
         q.add(n.pos);
       }

@@ -20,13 +20,13 @@ void day6a(List<String> lines) {
     visited.add(cur.pos);
     explored.add(cur);
 
-    GridVec next = cur.walk();
+    GridVec next = cur.walk;
     if (!inBoundsString(next.pos.r, next.pos.c, lines)) {
       break;
     }
     while (grid[next.pos.r][next.pos.c]) {
       cur = GridVec(cur.pos, cur.d.rt);
-      next = cur.walk();
+      next = cur.walk;
     }
     cur = next;
   }
@@ -45,13 +45,13 @@ bool hasLoop(List<List<bool>> grid, GridVec start) {
     }
     explored.add(cur);
 
-    GridVec next = cur.walk();
+    GridVec next = cur.walk;
     if (!inBounds(next.pos.r, next.pos.c, grid)) {
       return false;
     }
     while (grid[next.pos.r][next.pos.c]) {
       cur = GridVec(cur.pos, cur.d.rt);
-      next = cur.walk();
+      next = cur.walk;
       if (!inBounds(next.pos.r, next.pos.c, grid)) {
         return false;
       }

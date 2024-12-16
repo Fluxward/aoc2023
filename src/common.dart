@@ -10,19 +10,28 @@ class GridVec {
 
   GridVec(this.pos, this.d);
 
+  @override
   String toString() => "$pos => $d";
 
+  @override
   int get hashCode => Object.hashAll([pos, d]);
 
+  @override
   bool operator ==(other) =>
       other is GridVec && other.pos == pos && other.d == d;
 
-  GridVec walk() => GridVec(d + pos, d);
+  GridVec get walk => GridVec(d + pos, d);
+
+  GridVec get rt => GridVec(pos, d.rt);
+  GridVec get lt => GridVec(pos, d.lt);
+  GridVec get rev => GridVec(pos, d.rev);
 }
 
 extension RCUtil on P {
-  int get r => this.x;
-  int get c => this.y;
+  int get r => x;
+  int get c => y;
+
+  int mhd(P o) => (r - o.r).abs() + (c - o.r).abs();
 }
 
 extension RCLUtil on Ps {
@@ -148,7 +157,7 @@ enum dir {
   final Point<int> p;
   const dir(this.p);
 
-  dir rev() {
+  dir get rev {
     switch (this) {
       case u:
         return d;
