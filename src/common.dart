@@ -216,6 +216,9 @@ int exp(int base, int pow) => pow != 0
     ? exp(base, pow ~/ 2) * exp(base, pow ~/ 2) * ((pow % 2 == 1) ? base : 1)
     : 1;
 
+BigInt expb(BigInt base, BigInt pow) => pow == BigInt.zero ? BigInt.one : (expb(base, pow ~/ BigInt.two) * expb(base, pow ~/ BigInt.two) * ((pow % BigInt.two == BigInt.one) ? base : BigInt.one));
+
+bool isInt(BigInt bi) => BigInt.from(bi.toInt()) == bi;
 extension IntOps on int {
   int concat(int other) => (this * exp(10, other.numDigits())) + other;
   int numDigits() => this == 0 ? 1 : (log(this.abs()) / log(10)).floor() + 1;
