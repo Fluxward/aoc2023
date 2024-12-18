@@ -31,7 +31,7 @@ extension RCUtil on P {
   int get r => x;
   int get c => y;
 
-  int mhd(P o) => (r - o.r).abs() + (c - o.r).abs();
+  int mhd(P o) => (r - o.r).abs() + (c - o.c).abs();
 }
 
 extension RCLUtil on Ps {
