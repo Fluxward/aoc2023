@@ -90,8 +90,8 @@ Map<P, int> m0 = Map.fromEntries(dp
 
 //Map<P, int> m1 = m0.map((k, v) => );
 
-// second order pathing.
-// int is number of human button presses to enter an input.
+// second order pathing. 
+// int is number of human button presses for robot0 to move robot1 from position p1 to position p2 and press the button.
 // to enter an input for robot1, robot0 must navigate to that input and press down.
 void doM1() {
   for (int r = 0; r < 2; r++) {
