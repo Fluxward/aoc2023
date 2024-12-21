@@ -15,7 +15,7 @@ import '17.dart';
 import '18.dart';
 import '19.dart';
 import '2.dart';
-// import '21.dart';
+import '21.dart';
 // import '22.dart';
 // import '23.dart';
 // import '24.dart';
@@ -50,7 +50,7 @@ List<Function(bool)> jump = [
   d18,
   d19,
   d20,
-  // d21,
+  d21,
   // d22,
   // d23,
   // d24,
