@@ -1,3 +1,6 @@
+import 'dart:collection';
+import 'dart:core';
+
 import 'package:collection/collection.dart';
 
 import '../common.dart';
@@ -20,6 +23,7 @@ List<List<int>> kp = [
   [1, 2, 3],
   [11, 0, 10]
 ];
+
 Map<int, P> kpm = Map.fromEntries(kp
     .mapIndexed((r, l) => l.mapIndexed((c, i) => MapEntry(i, P(r, c))))
     .flattened);
@@ -44,6 +48,18 @@ enum btn {
   final dir? v;
 
   const btn(this.v);
+
+  @override
+  String toString() {
+    switch(this) {
+      case u: return "^";
+      case l: return '<';
+      case r: return '>';
+      case d: return 'v';
+      case a: return 'A';
+      case na: return 'X';
+    }
+  }
 }
 
 List<List<btn>> dp = [
@@ -67,24 +83,23 @@ List<List<int>> input = ip
 final P dpA = P(0, 2);
 final P kpA = P(3, 2);
 
-Map<(P, P), int> __hr0 = {};
-Map<(P, P), int> __r0r1 = {};
-Map<(P, P), int> __r1r2 = {};
-Map<(P, P), int> __r2kp = {};
-
-int hr0(P a, P b) => __hr0.putIfAbsent((a, b), () => _hr0(a, b));
-int r0r1(P a, P b) => __r0r1.putIfAbsent((a, b), () => _r0r1(a, b));
-int r1r2(P a, P b) => __r1r2.putIfAbsent((a, b), () => _r1r2(a, b));
-int r2kp(P a, P b) => __r2kp.putIfAbsent((a, b), () => _r2kp(a, b));
+int hr0(P a, P b) => a.mhd(b);
+Map<(List<P>, List<P>, int), int> __rab = HashMap(
+    equals: (p0, p1) =>
+        ListEquality<P>().equals(p0.$1, p1.$1) &&
+        ListEquality<P>().equals(p0.$2, p1.$2) &&
+        p0.$3 == p1.$3,
+    hashCode: (p0) => Object.hashAll([Object.hashAll([p0.$1, p0.$2]), p0.$3]));
+int rab(List<P> a, List<P> b, l) =>
+    __rab.putIfAbsent((a, b, l), () => _rab(a, b, l));
 
 class St21 implements Comparable<St21> {
   final List<P> r;
-  final List<dir?> pd;
 
   final int d;
   final St21? pr;
 
-  St21(this.r, this.pd, this.d, this.pr);
+  St21(this.r, this.d, this.pr);
 
   @override
   int compareTo(St21 other) {
@@ -92,51 +107,57 @@ class St21 implements Comparable<St21> {
   }
 }
 
-int _hr0(P a, P b) {
-  return 0;
-}
+P dbtn(dir d) => dpm[dbm[d]]!;
 
-int _r0r1(P a, P b) {
-  return 0;
-}
+int _rab(List<P> a, List<P> b, int l) {
+  if (l == 1) return hr0(a.first, b.first);
+  PriorityQueue<St21> q = PriorityQueue()..add(St21(a, 0, null));
+  Set<List<P>> seen = HashSet(
+      equals: (la, lb) => ListEquality<P>().equals(la, lb),
+      hashCode: Object.hashAll);
 
-int _r1r2(P a, P b) {
-  return 0;
-}
-
-int _r2kp(P a, P b) {
-  PriorityQueue<St21> q = PriorityQueue()
-    ..add(St21([dpA, dpA, kpA], [null, null, null], 0, null));
-
-  Set<P> seen = {};
-  while (q.first.r[2] != b) {
+  while (!ListEquality<P>().equals(q.first.r, b)) {
     St21 c = q.removeFirst();
-    if (seen.contains(c.r[3])) continue;
-  }
-}
+    if (seen.contains(c.r)) continue;
+    seen.add(c.r);
 
-void bfs(P a, P b, int r, Set<P> v, int Function(St21 a, St21 b) calcD) {
-  PriorityQueue<St21> q = PriorityQueue()
-    ..add(St21([dpA, dpA, kpA], [null, null, null], 0, null));
+    if (c.r.last == b.last) {
+      q.add(St21(
+          b,
+          c.d +
+               rab(c.r.sublist(0, l - 1), b.sublist(0, l - 1), l - 1),
+          c));
+      continue;
+    }
 
-  Set<P> seen = {};
-
-  while (q.first.r[r] != b) {
-    St21 c = q.removeFirst();
-    P p = c.r[r];
-    if (seen.contains(p)) continue;
     for (dir d in dir.values) {
-      P n = d + p;
-      if (!v.contains(n)) continue;
+      P n = d + c.r.last;
+      P dp = dbtn(d);
+      if ((l == 3 && !vkp.contains(n)) || (l < 3 && !vdp.contains(n))) continue;
+      int cost = c.d;
+      List<P> np = [...List.filled(l - 2, dpA), dp, n];
+      cost += rab(c.r.sublist(0, l - 1), np.sublist(0, l - 1), l - 1);
+      // press A
+      cost++;
+
+      //print(cost);
+      q.add(St21(np, cost, c));
     }
   }
+  print("$a -> $b: ${q.first.d} moves");
+  return q.first.d;
 }
 
 int complexity(String s) =>
-    int.parse(s.substring(0, s.length - 1)) *
-    s.split("").map((c) => int.parse(c, radix: 16)).foldIndexed(0,
-        (i, p, e) => p + (i == s.length - 1 ? 0 : r2kp(kpm[e]!, kpm[i + 1]!)));
+    //int.parse(s.substring(0, s.length - 1)) *
+    s.split("").map((c) => int.parse(c, radix: 16)).foldIndexed(
+        0,
+        (i, p, e) =>
+            p + 1 +
+            (rab([dpA, dpA, i == 0 ? kpA : kpm[i - 1]!], [dpA, dpA, kpm[e]!],
+                3)));
 void d21(bool sub) {
   List<String> input = getLines();
-  print(input.map(complexity).reduce((a, b) => a + b));
+  //print(input.map(complexity).reduce((a, b) => a + b));
+  input.map(complexity).forEach(print);
 }
