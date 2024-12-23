@@ -20,20 +20,11 @@ List<List<int>> kp = [
   [1, 2, 3],
   [11, 0, 10]
 ];
-Map<int, P> kpm = {
-  0: P(3, 1),
-  1: P(2, 0),
-  2: P(2, 1),
-  3: P(2, 2),
-  4: P(1, 0),
-  5: P(1, 1),
-  6: P(1, 2),
-  7: P(0, 0),
-  8: P(0, 1),
-  9: P(0, 2),
-  10: P(3, 2),
-  11: P(3, 0)
-};
+Map<int, P> kpm = Map.fromEntries(kp
+    .mapIndexed((r, l) => l.mapIndexed((c, i) => MapEntry(i, P(r, c))))
+    .flattened);
+
+Set<P> vkp = Set.from(kpm.values.whereNot((v) => v == P(3, 0)));
 
 /*
     +---+---+
@@ -60,14 +51,11 @@ List<List<btn>> dp = [
   [btn.l, btn.d, btn.r]
 ];
 
-Map<btn, P> dpm = {
-  btn.na: P(0, 0),
-  btn.u: P(0, 1),
-  btn.a: P(0, 2),
-  btn.l: P(1, 0),
-  btn.d: P(1, 1),
-  btn.r: P(1, 2),
-};
+Map<btn, P> dpm = Map.fromEntries(dp
+    .mapIndexed((r, l) => l.mapIndexed((c, i) => MapEntry(i, P(r, c))))
+    .flattened);
+
+Set<P> vdp = Set.from(dpm.values.whereNot((v) => v == P(0, 0)));
 
 Map<dir, btn> dbm = {dir.u: btn.u, dir.d: btn.d, dir.l: btn.l, dir.r: btn.r};
 
@@ -76,73 +64,79 @@ List<List<int>> input = ip
     .map((l) => l.split("").map((s) => int.parse(s, radix: 16)).toList())
     .toList();
 
-//int complexity(String s) => int.parse(s.substring(0, s.length - 1)) * search(s.split("").map((c) => int.parse(c, radix: 16)).toList());
-
 final P dpA = P(0, 2);
 final P kpA = P(3, 2);
 
-// first order pathing. This is human input -> robot input. int is number of presses to enter each button input on robot0.
-Map<P, int> m0 = Map.fromEntries(dp
-    .mapIndexed((r, l) =>
-        l.mapIndexed((c, i) => MapEntry(P(r, c), 1 + P(r, c).mhd(dpA))))
-    .flattened
-    .where((me) => me.key != P(0, 0)));
+Map<(P, P), int> __hr0 = {};
+Map<(P, P), int> __r0r1 = {};
+Map<(P, P), int> __r1r2 = {};
+Map<(P, P), int> __r2kp = {};
 
-//Map<P, int> m1 = m0.map((k, v) => );
+int hr0(P a, P b) => __hr0.putIfAbsent((a, b), () => _hr0(a, b));
+int r0r1(P a, P b) => __r0r1.putIfAbsent((a, b), () => _r0r1(a, b));
+int r1r2(P a, P b) => __r1r2.putIfAbsent((a, b), () => _r1r2(a, b));
+int r2kp(P a, P b) => __r2kp.putIfAbsent((a, b), () => _r2kp(a, b));
 
-// second order pathing. 
-// int is number of human button presses for robot0 to move robot1 from position p1 to position p2 and press the button.
-// to enter an input for robot1, robot0 must navigate to that input and press down.
-void doM1() {
-  for (int r = 0; r < 2; r++) {
-    for (int c = 0; c < 3; c++) {
-      if (r == 0 && c == 0) continue;
+class St21 implements Comparable<St21> {
+  final List<P> r;
+  final List<dir?> pd;
+
+  final int d;
+  final St21? pr;
+
+  St21(this.r, this.pd, this.d, this.pr);
+
+  @override
+  int compareTo(St21 other) {
+    return d.compareTo(other.d);
+  }
+}
+
+int _hr0(P a, P b) {
+  return 0;
+}
+
+int _r0r1(P a, P b) {
+  return 0;
+}
+
+int _r1r2(P a, P b) {
+  return 0;
+}
+
+int _r2kp(P a, P b) {
+  PriorityQueue<St21> q = PriorityQueue()
+    ..add(St21([dpA, dpA, kpA], [null, null, null], 0, null));
+
+  Set<P> seen = {};
+  while (q.first.r[2] != b) {
+    St21 c = q.removeFirst();
+    if (seen.contains(c.r[3])) continue;
+  }
+}
+
+void bfs(P a, P b, int r, Set<P> v, int Function(St21 a, St21 b) calcD) {
+  PriorityQueue<St21> q = PriorityQueue()
+    ..add(St21([dpA, dpA, kpA], [null, null, null], 0, null));
+
+  Set<P> seen = {};
+
+  while (q.first.r[r] != b) {
+    St21 c = q.removeFirst();
+    P p = c.r[r];
+    if (seen.contains(p)) continue;
+    for (dir d in dir.values) {
+      P n = d + p;
+      if (!v.contains(n)) continue;
     }
   }
 }
 
-extension P21 on P {
-  Iterable<P> get dpn => dir.values
-      .map((d) => d + this)
-      .where((p) => p != P(0, 0) && dpm.values.contains(p));
-  Iterable<P> get kpn => dir.values
-      .map((d) => d + this)
-      .where((p) => p != P(3, 0) && kpm.values.contains(p));
-}
-
-P e = P(0, 0);
-
-class State {
-  P r0;
-  P r1;
-  P r2;
-
-  int d;
-  State? prev;
-
-  State(this.r0, this.r1, this.r2, this.d, this.prev);
-
-  ///int get hn => e.mhd(p) - 1;
-  int get gn => d;
-  //int get fn => hn + gn;
-
-  @override
-  bool operator ==(Object other) =>
-      other is State &&
-      other.d == d &&
-      other.r0 == r0 &&
-      other.r1 == r1 &&
-      other.r2 == r2;
-
-  @override
-  int get hashCode => Object.hashAll([d, r0, r1, r2]);
-
-  @override
-  String toString() =>
-      [r0, r1, r2].mapIndexed((i, r) => "Robot $i : $r").join((', '));
-}
-
+int complexity(String s) =>
+    int.parse(s.substring(0, s.length - 1)) *
+    s.split("").map((c) => int.parse(c, radix: 16)).foldIndexed(0,
+        (i, p, e) => p + (i == s.length - 1 ? 0 : r2kp(kpm[e]!, kpm[i + 1]!)));
 void d21(bool sub) {
-  print(m0);
-  //print(m1);
+  List<String> input = getLines();
+  print(input.map(complexity).reduce((a, b) => a + b));
 }
