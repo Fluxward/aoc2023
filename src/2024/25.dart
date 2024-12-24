@@ -1,0 +1,1 @@
+void d25(bool sub) {}
