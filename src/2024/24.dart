@@ -23,31 +23,47 @@ int sparse(Set<String> s) => s
     .reversed
     .fold<int>(0, (p, e) => (p << 1) + (iv[e]! ? 1 : 0));
 
-bool ze(String s) => s[0] == 'z';
-bool xe(String s) => s[0] == 'x';
-bool ye(String s) => s[0] == 'y';
+bool ne(String s, String c) => s[0] == c;
 
-List<int> errors = [6];
+List<String> swaps = ['dhg', 'z06', 'dpd', 'brk', 'z23', 'bhd', 'nbf', 'z38'];
+Set<String> sswaps = swaps.toSet();
 
-List<List<String>> swaps = [
-  ['dhg', 'z06'],
-  ['dpd', 'brk'],
-  ['z23', 'bhd'],
-  ['nbf', 'z38']
-];
+//1100110010111101011100001101110011111100100110
+class FACell {
+  FACell(this.id);
+  final int id;
+
+  // S = (X ^ Y) ^ Cin
+  // Cout = (XY) + (Cin.(X ^ Y))
+
+  String? cinAlias;
+  String? xyxorAlias;
+  String? xyandAlias;
+  String? cinandxyAlias;
+  String? coutAlias;
+}
+
+List<String> gates = Set<String>.from(inp
+        .skip(spl + 1)
+        .map((s) => s.split(' '))
+        .map((s) => s.whereIndexed((i, s) => i % 2 == 0))
+        .flattened)
+    .toList();
+Map<String, int> gids = {for (var e in gates.indexed) e.$2: e.$1};
 
 void d24(bool sub) {
-  Queue<List<String>> q =
-      Queue.from(inp.skip(spl + 1).map((s) => s.split(' ')));
+  List<List<String>> gates =
+      inp.skip(spl + 1).map((s) => s.split(' ')).toList();
+  Queue<List<String>> q = Queue.from(gates);
 
   Set<String> zeds = {};
   Set<String> xes = {};
   Set<String> whys = {};
   while (q.isNotEmpty) {
     List<String> c = q.removeFirst();
-    zeds.addAll(c.where(ze));
-    xes.addAll(c.where(xe));
-    whys.addAll(c.where(ye));
+    zeds.addAll(c.where((String s) => ne(s, 'z')));
+    xes.addAll(c.where((String s) => ne(s, 'x')));
+    whys.addAll(c.where((String s) => ne(s, 'y')));
     if (iv.containsKey(c.first) && iv.containsKey(c[2])) {
       iv[c.last] = jmp[c[1]]!(iv[c[0]]!, iv[c[2]]!);
     } else {
@@ -55,94 +71,74 @@ void d24(bool sub) {
     }
   }
 
-  int z = sparse(zeds);
-  int y = sparse(whys);
-  int x = sparse(xes);
+  gates
+      .where((l) => sswaps.contains(l[4]))
+      .forEach((l) => print("dbg: btw this is an error: $l"));
+  List<FACell> cells = List.generate(zeds.length, (i) => FACell(i));
+  Map<String, int> xyand = {};
+  Map<String, int> xyxor = {};
 
-  List<String> sx = xes.toList().sorted();
-  List<String> sy = whys.toList().sorted();
-  List<String> sz = zeds.toList().sorted();
+  Set<String> foundErrors = {};
 
-  Map<String, int> id = {}
-    ..addEntries(sx.indexed.map((i) => MapEntry(i.$2, i.$1)))
-    ..addEntries(sz.indexed.map((i) => MapEntry(i.$2, i.$1)))
-    ..addEntries(sy.indexed.map((i) => MapEntry(i.$2, i.$1)));
-
-  print(z);
-
-  List<String> ors = List.filled(sx.length, "");
-  List<String> ans = List.filled(sx.length, "");
-  List<String> xos = List.filled(sx.length, "");
-
-  Map<String, Map<String, (String, String)>> rops = {};
-  Map<String, Map<String, (String, String)>> ops = {};
-  for (List<String> line in inp.skip(spl + 1).map((s) => s.split(" "))) {
-    String o1 = line[0];
-    String o2 = line[2];
-    String o3 = line[4];
-    rops.putIfAbsent(o3, () => {}).putIfAbsent(o2, () => (o1, line[1]));
-    rops.putIfAbsent(o3, () => {}).putIfAbsent(o1, () => (o2, line[1]));
-    ops.putIfAbsent(o1, () => {}).putIfAbsent(o2, () => (o3, line[1]));
-    ops.putIfAbsent(o2, () => {}).putIfAbsent(o1, () => (o3, line[1]));
-
-    if (id.containsKey(o1)) {
-      int i = id[o1]!;
-      switch (line[1]) {
+  for (List<String> l in gates) {
+    if (l[1] != 'XOR' && ne(l[4], 'z')) {
+      int i = int.parse(l[4].substring(1, 3));
+      if (i < cells.length - 1) {
+        foundErrors.add(l[4]);
+        print("possible error at ${l.join(' ')}");
+      }
+    }
+    if (ne(l[0], 'x') || ne(l[0], 'y')) {
+      int i = int.parse(l[0].substring(1, 3));
+      String alias = l[4];
+      switch (l[1]) {
         case 'AND':
-          ans[i] = o3;
-        case 'OR':
-          ors[i] = o3;
+          if (!ne(l[4], 'z')) {
+            cells[i].xyandAlias = l[4];
+            xyand[l[4]] = i;
+          } else {
+            print("possible error at ${l.join(' ')}");
+            foundErrors.add(l[4]);
+          }
+
         case 'XOR':
-          xos[i] = o3;
+          if (!ne(l[4], 'z')) {
+            cells[i].xyxorAlias = l[4];
+            xyxor[l[4]] = i;
+          } else if (i != 0) {
+            print("possible error at ${l.join(' ')}");
+          }
+        case 'OR':
         default:
+          print("invalid input: $l");
       }
     }
   }
 
-  List<String> sumRHS = [];
-
-  for (int i = 0; i < ans.length; i++) {
-    String oper = xos[i];
-    String? roper = ops[oper]?.values.first.$1;
-    sumRHS.add(roper ?? "None");
+  for (List<String> l in gates) {
+    if (xyand.containsKey(l[0])) {}
   }
 
-  List<String> sums = [];
-
-  for (int i = 0; i < sumRHS.length; i++) {
-    String oper = sumRHS[i];
-    String? roper = ops[oper]?.values.first.$1;
-    sums.add(roper ?? "None");
-    print("Co${i - 1}: $roper ");
-    print("S$i: ${sx[i]} x ${sy[i]} x $roper");
-  }
-
-  StringBuffer mapGate(String gate, int nest) {
-    StringBuffer buf = StringBuffer();
-    if (!rops.containsKey(gate)) {
-      return buf;
+  for (int i = 0; i < cells.length; i++) {
+    if (cells[i].xyandAlias == null) {
+      print("cell $i missing x AND y");
     }
-    for (int i = 0; i < nest; i++) {
-      buf.write(' ');
+    if (cells[i].xyxorAlias == null) {
+      print("cell $i missing x OR y");
     }
-    var oe = rops[gate]!;
-    var left = oe.keys.first;
-    var op = oe[left]!.$2;
-    var right = oe[left]!.$1;
-    buf.write('$gate <- $left $op $right:\n');
-    buf.write(mapGate(left, nest + 1));
-    buf.write(mapGate(right, nest + 1));
-    return buf;
   }
+  print("found errors: $foundErrors");
 
-  for (var z in sz) {
-    print(mapGate(z, 0));
-  }
+  int z = sparse(zeds);
+  int y = sparse(whys);
+  int x = sparse(xes);
+
+  print(z);
 
   print(" ${x.toRadixString(2)}");
   print(" ${y.toRadixString(2)}");
   print(z.toRadixString(2));
   print((x + y).toRadixString(2));
 
-  print(swaps.flattened.sorted().join(','));
+  print(swaps.sorted().join(','));
 }
