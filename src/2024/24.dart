@@ -59,40 +59,46 @@ class Sum extends Gate {
 }
 
 class XyXor extends Gate {
-  @override
-  String? alias;
 
   CinAndXY? outCAXY;
   Sum? outSum;
+
+  @override
+  bool operator==(o) => gateEquals<XyXor>(o);
+  @override
+  int get hashCode => Object.hashAll([alias, 'XyXor']);
 }
 
-class XyAnd implements Gate {
-  @override
-  String? alias;
-
+class XyAnd extends Gate {
   Cout? out;
-
-  bool equals(Gate other)
+  @override
+  bool operator==(o) => gateEquals<XyAnd>(o);
+  @override
+  int get hashCode => Object.hashAll([alias, 'XyAnd']);
 }
 
-class CinAndXY implements Gate {
-  @override
-  String? alias;
+class CinAndXY extends Gate {
 
   Cout? out;
 
   XyXor? inXyX;
   Cin? inCin;
+  @override
+  bool operator==(o) => gateEquals<CinAndXY>(o);
+  @override
+  int get hashCode => Object.hashAll([alias, 'CAXY']);
 }
 
-class Cout implements Gate {
-  @override
-  String? alias;
-
+class Cout extends Gate {
   Cin? out;
 
   XyAnd? inXY;
   CinAndXY? inCAXY;
+
+  @override
+  bool operator==(o) => gateEquals<Cout>(o);
+  @override
+  int get hashCode => Object.hashAll([alias, 'Cout']);
 }
 
 Map<String, Gate> allGates = {};
@@ -135,9 +141,11 @@ void d24(bool sub) {
   gates
       .where((l) => sswaps.contains(l[4]))
       .forEach((l) => print("dbg: btw this is an error: $l"));
-
+  
   Map<String, int> xyand = {};
   Map<String, int> xyxor = {};
+  Map<String, (bool xor, bool and, bool)> xorOpTest = {};
+  Map<String, int> caxyMap = {};
   Map<String, int> couts = {};
 
   List<(int, List<String>)> orGates =
@@ -154,9 +162,16 @@ void d24(bool sub) {
   List<(int, List<String>)> sums =
       xorGates.where((i) => !ne(i.$2[0], 'x') && !ne(i.$2[2], 'x')).toList();
 
+  Set<String> setXYXors = xyxorGates.map((i) => i.$2[4]).toSet(); 
+  Set<String> setXYAnds = xyandGates.map((i) => i.$2[4]).toSet(); 
+
+  List<(int, List<String>)> caxyGates = andGates.whereNot((i) => setXYAnds.contains(i.$2[4])).toList();
+
   Set<String> foundErrors = {};
 
   int ip(String s) => int.parse(s.substring(1, 3));
+
+
 
   for (int i = 0; i < zeds.length; i++) {
     cins[i].inCout = (i > 0) ? cOuts[i - 1] : null;
@@ -175,20 +190,93 @@ void d24(bool sub) {
     if (i < zeds.length - 1) cOuts[i].out = cins[i + 1];
   }
 
+  // Step 1. find X and Y elements and caxy elements as outputs
+  Set<String> xyandOut = {}; // might have error.
+  Set<String> caxyOut = {}; // might have error.
+  Set<String> coutOuts = {}; // might have errors.
+
+  Set<String> caxyIns = {}; // everything in here is either an x XOR y input or a Cin input.
+
+  for (var v in andGates) {
+    List<String> l = v.$2;
+    if (ne(l[0], 'x') || ne(l[0], 'y')) {
+      if (ip(l[0]) == 0) {
+        // this is actually the carryout of gate 0
+        coutOuts.add(l[4]);
+      } else {
+        // supposed x y and gate.
+        xyandOut.add(l[4]);
+      }
+    } else {
+      caxyOut.add(l[4]);
+      caxyIns.add(l[0]);
+      caxyIns.add(l[2]);
+    }
+  }
+
+  Set<String> xyxorOut = {}; // might have error
+  Set<String> sumOut = {}; // might have error
+  Set<String> sumIns = {}; // everything in here is either an x XOR y input or a Cin input.
+  // Step 2. find x xor y outputs OR sum outputs.
+  for (var v in xorGates) {
+    List<String> l = v.$2;
+    if (ne(l[0], 'x') || ne(l[0], 'y')) {
+      if (ip(l[0]) == 0) {
+        // actually the output bit of gate 0
+        sumOut.add(l[4]);
+      } else {
+        xyxorOut.add(l[4]);
+      }
+    } else {
+      sumOut.add(l[4]);
+      sumIns.add(l[2]);
+      sumIns.add(l[0]);
+    }
+  }
+
+  Set<String> coutIns = {}; // everything in here is either an x AND y input or a caxy input.
+  for (var v in orGates) {
+    List<String> l = v.$2;
+    if (ne(l[4], 'z') && ip(l[4]) == zeds.length-1) {
+      // this is actually a sum.
+      sumOut.add(l[4]);
+    } else {
+      coutOuts.add(l[4]);
+    }
+    coutIns.add(l[0]);
+    coutIns.add(l[2]);
+  }
+
+  print("possible errors so far:");
+  print(xyxorOut.difference(sumIns));
+  print(xyxorOut.difference(caxyIns));
+  print(caxyOut.difference(coutIns));
+  print(xyandOut.difference(coutIns));
+  print(coutOuts.difference(sumIns));
+  print(coutOuts.difference(caxyIns));
+  print('end of early search');
+
+
+  Set<String> cinIn = {}; // gate names that are labelled as inputs and are cin/cout results
+  Set<String> caxyIn = {}; // gate names that are labelled as inputs and are caxy results
+  Set<String> xyandIn = {}; // gate names that are labelled as inputs and are xyand results.
+  Set<String> xyxorIn = {}; // gate names that are labelled as inputs and are xyxor results.
+
   for (var v in xyandGates) {
     List<String> l = v.$2;
     int i = ip(l[0]);
     if (!ne(l[4], 'z')) {
+      xyandOut.add(l[4]);
       xyands[i].alias = l[4];
       xyand[l[4]] = i;
-
-      Gate g = allGates.putIfAbsent(l[4], () => xyands[i]);
-      if (g)
+      allGates[l[4]] = xyands[i];
     } else {
-      print("possible error at ${l.join(' ')}");
+      print("incorrect Z at ${l.join(' ')}");
       foundErrors.add(l[4]);
     }
   }
+
+  // Step 2. find caxy and xy xor elements as outputs
 
   for (var v in xyxorGates) {
     List<String> l = v.$2;
@@ -196,8 +284,14 @@ void d24(bool sub) {
     if (!ne(l[4], 'z')) {
       xyxors[i].alias = l[4];
       xyxor[l[4]] = i;
+
+      Gate g = allGates.putIfAbsent(l[4], () => xyxors[i]);
+      if (g is! XyXor) {
+        print("mislabelled XyXor found! ${g.alias}");
+        foundErrors.add(g.alias!);
+      }
     } else if (i != 0) {
-      print("possible error at ${l.join(' ')}");
+      print("incorrect Z at ${l.join(' ')}");
     }
   }
 
@@ -206,8 +300,15 @@ void d24(bool sub) {
     couts[cout] = i;
     cOuts[i].alias = cout;
     caxys[i].alias = caxy;
+
     if (i < zeds.length - 1) {
       cins[i + 1].alias = cout;
+    }
+
+    Gate g = allGates.putIfAbsent(cout, () => cOuts[i]);
+    if (g is! Cout) {
+      print("mislabelled cout! $xya AND $caxy -> $cout vs ${g.alias}");
+      foundErrors.add(g.alias!);
     }
   }
 
@@ -216,59 +317,24 @@ void d24(bool sub) {
     if (!ne(l[4], 'z')) {
       // look for the xyand operator.
       if (xyand.containsKey(l[0])) {
-        doXYAnd(l[0], caxy, cout)
+        doXYAnd(l[0], l[2], l[4]);
       } else if (xyand.containsKey(l[2])) {
-        // int i = xyand[l[2]]!;
-        // couts[l[4]] = i;
-        // if (cells[i].cinandxyAlias != null) {
-        //   print("collision! ${l[2]} vs ${cells[i].cinandxyAlias}");
-        // }
-        // cells[i].cinandxyAlias = l[2];
-        // if (cells[i].coutAlias != null) {
-        //   print("collision! ${l[4]} vs ${cells[i].coutAlias}");
-        // }
-        // cells[i].coutAlias = l[4];
-        // if (i < cells.length) {
-        //   if (cells[i + 1].cinAlias != null && cells[i + 1].cinAlias != l[4]) {
-        //     print("collision! ${l[4]} vs ${cells[i + 1].cinAlias}");
-        //   }
-        //   cells[i + 1].cinAlias = l[4];
-        // }
+        doXYAnd(l[2], l[0], l[4]);
       } else {
         print("invalid or gate ${l.join(' ')}");
       }
+    } else if (ip(l[4]) != zeds.length - 1) {
+      print("possible malformed cout at ${l.join(' ')}");
+      foundErrors.add(l[4]);
     }
-    // } else if (ip(l[4]) != cells.length - 1) {
-    //   print("possible malformed cout at ${l.join(' ')}");
-    //   foundErrors.add(l[4]);
-    // }
   }
+
+  void doSum(String xyxor, String cin) {}
   for (var i in sums) {
     List<String> l = i.$2;
-    String cin;
     if (xyxor.containsKey(l[0])) {
-      // l[2] is a Cin
-      cin = l[2];
-      if (!couts.containsKey(l[2])) {
-        print("possible missing cin: ${l[2]}: ${l.join(' ')}");
-        continue;
-      }
-    } else if (xyxor.containsKey(l[2])) {
-      cin = l[0];
-      if (!couts.containsKey(l[0])) {
-        print("possible missing cin: ${l[0]}: ${l.join(' ')}");
-        continue;
-      }
-    } else {
-      print("possible malformed sum at ${l.join(' ')}");
-      continue;
-    }
 
-    int id = couts[cin]!;
-    id++;
-    // if (cells[id].cinAlias != null && cells[id].cinAlias != cin) {
-    //   print("cin collision: $cin, ${gates[i.$1]}");
-    // }
+    }
   }
 
   for (List<String> l in gates) {
@@ -281,26 +347,6 @@ void d24(bool sub) {
     }
   }
 
-  // for (int i = 1; i < cells.length; i++) {
-  //   if (cells[i].xyandAlias == null) {
-  //     print("cell $i missing x AND y");
-  //   }
-  //   if (cells[i].xyxorAlias == null) {
-  //     print("cell $i missing x OR y");
-  //   }
-  //   if (cells[i].cinAlias == null) {
-  //     print("cell $i missing cin");
-  //   }
-  //   if (cells[i].cinandxyAlias == null) {
-  //     print("cell $i missing cin and x XOR y");
-  //   }
-  //   if (cells[i].coutAlias == null) {
-  //     print("cell $i missing cout");
-  //   }
-  //   if (cells[i - 1].coutAlias != cells[i].cinAlias) {
-  //     print("mismatch: ${cells[i - 1].coutAlias} != ${cells[i].cinAlias}");
-  //   }
-  // }
   print("found errors: $foundErrors");
 
   int z = sparse(zeds);
